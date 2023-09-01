@@ -1,0 +1,16 @@
+{
+  "name": "sfcc-web-services",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Salesforce Commerce Cloud - Web Service Library",
+  "scripts": {
+    "lint": "eslint cartridges/**"
+  },
+  "devDependencies": {
+    "eslint": "^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.2",
+    "jsdoc": "^4.0.2"
+  }
+}

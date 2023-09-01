@@ -1,0 +1,15 @@
+{
+  "root": true,
+  "extends": "airbnb-base/legacy",
+  "globals": {
+    "XML": "readonly"
+  },
+  "rules": {
+    "max-len": "off",
+    "vars-on-top": "off",
+    "no-underscore-dangle": "off",
+    "func-names": "off",
+    "global-require": "off",
+    "no-param-reassign": "off"
+  }
+}
