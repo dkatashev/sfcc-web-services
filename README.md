@@ -130,6 +130,42 @@ Configure Service in Business Manager/Meta with type: **SOAP**.
 
 For SOAP-based services, you can integrate them seamlessly into your project.
 
+```javascript
+var SOAPService = require('*/cartridge/scripts/webservice/SOAPService');
+
+// your service definition
+var YourSOAPService = SOAPService.extend({
+  // service configuration map between aliases and actual service IDs
+  SERVICE_CONFIGURATIONS: {
+    // configured service ID from Business Manager or Meta Data
+    default: 'your.soap.service'
+  },
+
+  /**
+   * @param {dw.order.Order} order
+   * @returns {dw.svc.Result}
+   */
+  sendOrder: function (order) {
+    return this.fetch({
+      webReference: 'wsdlName',
+      // if not send service object - defaultService will be used
+      service: {
+        name: 'Some',
+        port: 'SendOrder'
+      },
+      // is used during execute callback
+      operation: 'sendOrder',
+      // callback for request creation
+      getRequest: function (svc, webReference) {
+        var request = new webReference.OrderRequest();
+        request.orderNo = order.orderNo;
+        return request;
+      }
+    });
+  }
+});
+```
+
 ### SFTP Web Service
 
 Configure Service in Business Manager/Meta with type: **FTP**.
