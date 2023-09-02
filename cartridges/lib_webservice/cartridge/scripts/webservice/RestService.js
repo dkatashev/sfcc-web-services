@@ -286,7 +286,7 @@ var RestService = BaseService.extend({
  * Callback function for customizing the REST request.
  * @callback onCreateRequest
  * @param {RestParams} params - The REST parameters.
- * @param {dw.svc.Service} svc - The service instance.
+ * @param {dw.svc.HTTPService} svc - The service instance.
  * @param {dw.svc.ServiceCredential} serviceCredential - The service credential.
  * @returns {void}
  */
