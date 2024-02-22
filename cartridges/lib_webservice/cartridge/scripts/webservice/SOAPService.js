@@ -177,7 +177,7 @@ var SOAPService = BaseService.extend({
  * @callback getRequest
  * @param {dw.svc.SOAPService} svc - The SOAP service instance.
  * @param {dw.ws.WebReference2} webReference - The WebReference object.
- * @returns {void}
+ * @returns {Object}
  */
 
 /**

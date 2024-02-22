@@ -27,6 +27,15 @@ var BaseService = {
   ],
 
   /**
+   * Names of callback methods that can be provided for configuring service mock behavior.
+   * @type {string[]}
+   */
+  SERVICE_CALLBACK_MOCK_METHODS: [
+    'mockCall',
+    'mockFull'
+  ],
+
+  /**
    * Extend Service
    *
    * @template T
@@ -48,7 +57,7 @@ var BaseService = {
     var params = args || aliasOrArgs;
 
     try {
-      var svc = this._createService(alias);
+      var svc = this._createService(alias, params);
       var result = svc.call(params);
 
       if (!result.ok) {
@@ -66,14 +75,15 @@ var BaseService = {
    *
    * @protected
    * @param {string} [alias] - The service alias for which the service instance is created. Defaults to 'default'.
+   * @param {Object.<string,any>} [params] - The arguments for the fetch operation.
    * @returns {dw.svc.Service} The created service instance.
    */
-  _createService: function (alias) {
+  _createService: function (alias, params) {
     var LocalServiceRegistry = require('dw/svc/LocalServiceRegistry');
-    var serviceDefinition = this._getServiceID(alias || 'default');
-    var configCallbacks = this._getServiceCallback(serviceDefinition);
+    var serviceId = this._getServiceID(alias || 'default');
+    var configCallbacks = this._getServiceCallback(params);
 
-    return LocalServiceRegistry.createService(serviceDefinition, configCallbacks);
+    return LocalServiceRegistry.createService(serviceId, configCallbacks);
   },
 
   /**
@@ -98,9 +108,10 @@ var BaseService = {
    * Prepares and returns service callback object.
    *
    * @protected
+   * @param {Object.<string,any>} [params] - The arguments for the fetch operation.
    * @returns {dw.svc.ServiceCallback} The service callback configurations.
    */
-  _getServiceCallback: function () {
+  _getServiceCallback: function (params) {
     var configCallbacks = {};
     var self = this;
 
@@ -108,6 +119,13 @@ var BaseService = {
     this.SERVICE_CALLBACK_METHODS.forEach(function (method) {
       if (typeof self[method] === 'function') {
         configCallbacks[method] = self[method].bind(self);
+      }
+    });
+
+    /** Prepare service mock callbacks */
+    this.SERVICE_CALLBACK_MOCK_METHODS.forEach(function (method) {
+      if (typeof params[method] === 'function') {
+        configCallbacks[method] = params[method].bind(self);
       }
     });
 
@@ -124,7 +142,7 @@ var BaseService = {
   _handleErrorResult: function (serviceResult) {
     var result = serviceResult;
 
-    if (serviceResult instanceof Error) {
+    if (result instanceof Error) {
       var Result = require('dw/svc/Result');
 
       result = new Result();
@@ -132,7 +150,7 @@ var BaseService = {
       result.errorMessage = result.message;
     }
 
-    return serviceResult;
+    return result;
   },
 
   /**
