@@ -101,7 +101,7 @@ var BaseService = {
       throw new TypeError('Service: Please define service action for ' + alias + ' !');
     }
 
-    return this.SERVICE_CONFIGURATIONS[alias];
+    return serviceAction;
   },
 
   /**
@@ -142,12 +142,16 @@ var BaseService = {
   _handleErrorResult: function (serviceResult) {
     var result = serviceResult;
 
-    if (result instanceof Error) {
-      var Result = require('dw/svc/Result');
-
-      result = new Result();
-      result.ok = false;
-      result.errorMessage = result.message;
+    if (serviceResult instanceof Error) {
+      result = {
+        error: -1,
+        errorMessage: result.message,
+        msg: result.stack,
+        object: null,
+        ok: false,
+        status: 'ERROR',
+        unavailableReason: null
+      };
     }
 
     return result;
