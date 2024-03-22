@@ -53,6 +53,7 @@ var RestService = BaseService.extend({
 
     /** @description HTTP Authorization */
     if (params.auth) {
+      svc.setAuthentication('NONE');
       this._setAuthorizationHeader(params, credential);
     }
 
@@ -177,8 +178,9 @@ var RestService = BaseService.extend({
   _setAuthorizationHeader: function (svc, params, credential) {
     var auth = params.auth;
 
-    svc.setAuthentication('NONE');
-    svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
+    if (auth.type && auth.credentials) {
+      svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
+    }
   },
 
   /**
