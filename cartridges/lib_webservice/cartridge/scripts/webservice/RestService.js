@@ -300,6 +300,7 @@ var RestService = BaseService.extend({
  * @property {dw.crypto.KeyRef} [keyRef] - The key reference for mutual TLS.
  * @property {string} [encoding] - The encoding of the request body.
  * @property {number} [ttl] - The time-to-live for caching GET requests.
+ * @property {getAuthentication} [getAuthentication] - Callback for customizing the authentication object.
  * @property {onCreateRequest} [onCreateRequest] - Callback for customizing the request.
  */
 
