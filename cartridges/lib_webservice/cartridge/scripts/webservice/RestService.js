@@ -15,100 +15,101 @@ var RestService = BaseService.extend({
    * @returns {string|undefined} The request body, if applicable.
    */
   createRequest: function (svc, params) {
-    var credential = this._getServiceCredential(svc, params);
-    var url = credential.getURL();
-    var pathPatterns = params.pathPatterns || {};
-    var queryParams = params.queryParams || {};
-    var headers = params.headers || {};
-    var body = '';
+    // Merge params with default values
+    var args = Object.assign({
+      method: 'GET',
+      pathPatterns: {},
+      queryParams: {},
+      headers: {},
+    }, params);
 
-    /** @description HTTP Method */
-    svc.setRequestMethod(params.method || 'GET');
+    // Extract credential and URL
+    var credential = this._getServiceCredential(svc, args);
+    var url = credential.getURL();
+
+    // Set request method
+    svc.setRequestMethod(args.method);
 
     /**
-     * @description Replace path pattern with values
-     * @example https://test.com/:testParam
+     * Replace path pattern with values
+     * For example: https://test.com/:testParam
      */
-    Object.keys(pathPatterns).forEach(function (pathParam) {
-      url = url.replace(new RegExp(':' + pathParam), pathPatterns[pathParam]);
+    Object.keys(args.pathPatterns).forEach(function (pathParam) {
+      url = url.replace(new RegExp(':' + pathParam), args.pathPatterns[pathParam]);
     });
 
+    // Set service URL
     svc.setURL(url);
 
     /**
-     * @description Add query param to URL
-     * @example https://test.com?param=value
+     * Add query param to URL
+     * For example: https://test.com?param=value
      */
-    Object.keys(queryParams).forEach(function (queryParam) {
-      svc.addParam(queryParam, queryParams[queryParam]);
+    Object.keys(args.queryParams).forEach(function (queryParam) {
+      svc.addParam(queryParam, args.queryParams[queryParam]);
     });
 
     /**
-     * @description Add header to request
-     * @example Accept: application/json
+     * Add header to request
+     * For example: Accept: application/json
      */
-    Object.keys(headers).forEach(function (header) {
-      svc.addHeader(header, headers[header]);
+    Object.keys(args.headers).forEach(function (header) {
+      svc.addHeader(header, args.headers[header]);
     });
 
-    /** @description HTTP Authorization */
-    if (params.auth) {
+    // Set HTTP Authorization
+    if (typeof args.getAuthentication === 'function') {
+      args.auth = args.getAuthentication(args, svc, credential);
+    }
+
+    // Set HTTP Authorization Header
+    if (args.auth) {
       svc.setAuthentication('NONE');
-      this._setAuthorizationHeader(params, credential);
+
+      if (auth.type && auth.credentials) {
+        svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
+      }
     }
 
-    /**
-     * Sets the output file in which to write the HTTP response body.
-     */
-    if (params.outFile) {
-      svc.setOutFile(params.outFile);
+    // Sets the output file in which to write the HTTP response body.
+    if (args.outFile) {
+      svc.setOutFile(args.outFile);
     }
 
-    /**
-     * Sets the identity (private key) to use when mutual TLS (mTLS) is configured.
-     */
-    if (params.keyRef) {
-      svc.setIdentity(params.keyRef);
+    // Sets the identity (private key) to use when mutual TLS (mTLS) is configured.
+    if (args.keyRef) {
+      svc.setIdentity(args.keyRef);
     }
 
-    /**
-     * Sets the encoding of the request body (if any).
-     */
-    if (params.encoding) {
-      svc.setEncoding(params.encoding);
+    // Sets the encoding of the request body (if any).
+    if (args.encoding) {
+      svc.setEncoding(args.encoding);
     }
 
-    /**
-     * Enables caching for GET requests.
-     */
-    if (params.ttl) {
-      svc.setCachingTTL(params.ttl);
+    // Enables caching for GET requests.
+    if (args.ttl) {
+      svc.setCachingTTL(args.ttl);
     }
 
     // Could be used to inject custom logic per call
-    if (typeof params.onCreateRequest === 'function') {
-      params.onCreateRequest(params, svc, credential);
+    if (typeof args.onCreateRequest === 'function') {
+      args.onCreateRequest(args, svc, credential);
     }
 
-    /** @description Restrict request body by request method */
-    if (params.method === 'GET') {
+    // Restrict request body by request method
+    if (args.method === 'GET') {
       return undefined;
     }
 
-    /** @description Convert data to string */
-    switch (params.dataType) {
+    // Convert data to string
+    switch (args.dataType) {
       case 'form':
-        body = this._createFormBody(svc, params.data);
-        break;
+        return this._createFormBody(svc, args.data);
       case 'xml':
-        body = this._createXMLBody(svc, params.data);
-        break;
+        return this._createXMLBody(svc, args.data);
       default:
-        body = this._createJSONBody(svc, params.data);
-        break;
+        return this._createJSONBody(svc, args.data);
     }
-
-    return body;
   },
 
   /**
@@ -164,23 +165,6 @@ var RestService = BaseService.extend({
   // eslint-disable-next-line no-unused-vars
   _getServiceCredential: function (svc, params) {
     return svc.configuration.credential;
-  },
-
-  /**
-   * Sets the Authorization header for the HTTP request.
-   *
-   * @protected
-   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
-   * @param {RestParams} params - The REST parameters.
-   * @param {dw.svc.ServiceCredential} credential - The service credential.
-   */
-  // eslint-disable-next-line no-unused-vars
-  _setAuthorizationHeader: function (svc, params, credential) {
-    var auth = params.auth;
-
-    if (auth.type && auth.credentials) {
-      svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
-    }
   },
 
   /**
@@ -282,6 +266,15 @@ var RestService = BaseService.extend({
  * @typedef {Object} Authentication
  * @property {string} type - The type of authentication.
  * @property {string} credentials - The authentication credentials.
+ */
+
+/**
+ * Callback function for producing Authentication credentials.
+ * @callback getAuthentication
+ * @param {RestParams} params - The REST parameters.
+ * @param {dw.svc.HTTPService} svc - The service instance.
+ * @param {dw.svc.ServiceCredential} serviceCredential - The service credential.
+ * @returns {Authentication}
  */
 
 /**
