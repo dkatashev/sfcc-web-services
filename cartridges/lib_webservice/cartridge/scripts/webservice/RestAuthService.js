@@ -38,32 +38,14 @@ var RestAuthService = RestService.extend({
   },
 
   /**
-   * Performs a fetch operation with authentication header.
+   * Implementation of getAuthentication callback
    *
-   * @param {string|import('./RestService').RestParams} actionOrArgs - The action to be performed or REST parameters.
-   * @param {import('./RestService').RestParams} [args] - The REST parameters.
-   * @returns {dw.svc.Result} The result of the fetch operation.
+   * @param {import('./RestService').RestParams} args
+   * @param {dw.svc.HTTPService} svc
+   * @param {dw.svc.ServiceCredential} credential
+   * @returns {import('./RestService').Authentication}
    */
-  authFetch: function (actionOrArgs, args) {
-    var action = typeof actionOrArgs === 'string' ? actionOrArgs : 'default';
-    var params = args || actionOrArgs;
-    var credential = this._getAuthCredential();
-
-    return this.fetch(action, Object.assign({
-      auth: {
-        type: credential.tokenType,
-        credentials: credential.accessToken
-      }
-    }, params));
-  },
-
-  /**
-   * Retrieves authorization credentials from the cache.
-   *
-   * @protected
-   * @returns {AuthCredentials} The authorization credentials.
-   */
-  _getAuthCredential: function () {
+  getAuthentication: function (args, svc, credential) {
     var CacheMgr = require('dw/system/CacheMgr');
     var cache = CacheMgr.getCache(this.CACHE_ID);
     var self = this;
@@ -76,20 +58,13 @@ var RestAuthService = RestService.extend({
       }
 
       return {
-        tokenType: result.object.token_type,
-        accessToken: result.object.access_token
+        type: result.object.token_type,
+        credentials: result.object.access_token
       };
     });
 
     return credential;
   }
 });
-
-/**
- * Represents authorization credentials.
- * @typedef {Object} AuthCredentials
- * @property {string} tokenType - The type of the access token.
- * @property {string} accessToken - The access token.
- */
 
 module.exports = RestAuthService;

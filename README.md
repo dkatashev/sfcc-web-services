@@ -124,6 +124,64 @@ var YourRestService = RestService.extend({
 });
 ```
 
+For services where additional authentication needed(for example oAuth2):
+
+```javascript
+var RestAuthService = require('*/cartridge/scripts/webservice/RestAuthService');
+
+// your service definition
+var YourRestService = RestAuthService.extend({
+  // service configuration map between aliases and actual service IDs
+  SERVICE_CONFIGURATIONS: {
+    // configured service ID from Business Manager or Meta Data
+    default: 'your.http.service',
+    auth: 'your.http.service',
+  },
+
+  // Custom Cache ID where Authentication details stored(type and credentials)
+  CACHE_ID: 'your.http.service.cache',
+
+  /**
+   * Performs authorization using the 'auth' service action.
+   *
+   * @returns {dw.svc.Result} The result of the authorization request.
+   */
+  authorize: function () {
+    return this.fetch('auth', {
+      method: 'POST',
+      dataType: 'form',
+      data: {
+        grant_type: 'client_credentials'
+      }
+    });
+  },
+
+  /**
+   * @param {dw.order.Order} order
+   * @returns {dw.svc.Result}
+   */
+  sendOrder: function (order) {
+    // inline object
+    var data = {
+      ID: order.ID
+    };
+
+    // or usage with models
+    var SendOrderRequest = require('*/cartridge/models/ws/YourRestService/SendOrderRequest');
+    var data = new SendOrderRequest(order);
+
+    return this.fetch({
+      getAuthentication: this.getAuthentication.bind(this),
+      method: 'POST',
+      dataType: 'json',
+      data: data
+    });
+  }
+});
+
+
+```
+
 ### SOAP Web Service
 
 Configure Service in Business Manager/Meta with type: **SOAP**.
