@@ -50,7 +50,7 @@ var RestAuthService = RestService.extend({
     var cache = CacheMgr.getCache(this.CACHE_ID);
     var self = this;
 
-    var credential = cache.get('credential', function () {
+    var authentication = cache.get('credential', function () {
       var result = self.authorize();
 
       if (!result.ok) {
@@ -63,7 +63,7 @@ var RestAuthService = RestService.extend({
       };
     });
 
-    return credential;
+    return authentication;
   }
 });
 
