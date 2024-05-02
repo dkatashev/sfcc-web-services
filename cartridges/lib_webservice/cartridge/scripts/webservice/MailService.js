@@ -4,20 +4,6 @@
 var BaseService = require('*/cartridge/scripts/webservice/BaseService');
 
 /**
- * Represents parameters for sending an email.
- * @typedef {Object} MailParams
- * @property {string} from - The sender's email address.
- * @property {string[]} to - An array of recipient email addresses.
- * @property {string[]} [cc] - An optional array of CC recipient email addresses.
- * @property {string[]} [bcc] - An optional array of BCC recipient email addresses.
- * @property {string} subject - The subject of the email.
- * @property {Object} content - The content of the email.
- * @property {string|dw.value.MimeEncodedText} content.body - The body of the email content.
- * @property {string} [content.mimeType] - The MIME type of the content.
- * @property {string} [content.encoding] - The encoding of the content.
- */
-
-/**
  * Represents a service object for sending emails.
  */
 var MailService = BaseService.extend({
@@ -73,5 +59,19 @@ var MailService = BaseService.extend({
     return result;
   }
 });
+
+/**
+ * Represents parameters for sending an email.
+ * @typedef {Object} MailParams
+ * @property {string} from - The sender's email address.
+ * @property {string[]} to - An array of recipient email addresses.
+ * @property {string[]} [cc] - An optional array of CC recipient email addresses.
+ * @property {string[]} [bcc] - An optional array of BCC recipient email addresses.
+ * @property {string} subject - The subject of the email.
+ * @property {Object} content - The content of the email.
+ * @property {string|dw.value.MimeEncodedText} content.body - The body of the email content.
+ * @property {string} [content.mimeType] - The MIME type of the content.
+ * @property {string} [content.encoding] - The encoding of the content.
+ */
 
 module.exports = MailService;

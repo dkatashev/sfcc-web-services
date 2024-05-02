@@ -57,16 +57,16 @@ var BaseService = {
     var params = args || aliasOrArgs;
 
     try {
-      var svc = this._createService(alias, params);
-      var result = svc.call(params);
+      var service = this._createService(alias, params);
+      var result = service.call(params);
 
       if (!result.ok) {
-        return this._handleErrorResult(result);
+        return this._handleErrorResult(result, service);
       }
 
-      return this._handleSuccessResult(result);
+      return this._handleSuccessResult(result, service);
     } catch (err) {
-      return this._handleErrorResult(err);
+      return this._handleErrorResult(err, service);
     }
   },
 
@@ -91,17 +91,17 @@ var BaseService = {
    *
    * @protected
    * @param {string} alias - The service name for which the configuration is retrieved.
-   * @returns {ServiceAction} The configuration for the specified service name.
+   * @returns {string} The configuration for the specified service name.
    * @throws {TypeError} Throws an error if the alias is not defined in SERVICE_CONFIGURATIONS.
    */
   _getServiceID: function (alias) {
-    var serviceAction = this.SERVICE_CONFIGURATIONS[alias];
+    var serviceId = this.SERVICE_CONFIGURATIONS[alias];
 
-    if (!serviceAction) {
+    if (!serviceId) {
       throw new TypeError('Service: Please define service action for ' + alias + ' !');
     }
 
-    return serviceAction;
+    return serviceId;
   },
 
   /**
@@ -116,14 +116,7 @@ var BaseService = {
     var self = this;
 
     /** Prepare service callback */
-    this.SERVICE_CALLBACK_METHODS.forEach(function (method) {
-      if (typeof self[method] === 'function') {
-        configCallbacks[method] = self[method].bind(self);
-      }
-    });
-
-    /** Prepare service mock callbacks */
-    this.SERVICE_CALLBACK_MOCK_METHODS.forEach(function (method) {
+    this.SERVICE_CALLBACK_METHODS.concat(this.SERVICE_CALLBACK_MOCK_METHODS).forEach(function (method) {
       if (typeof params[method] === 'function') {
         configCallbacks[method] = params[method].bind(self);
       }
@@ -137,9 +130,10 @@ var BaseService = {
    *
    * @protected
    * @param {dw.svc.Result | Error} serviceResult - The original service result or an error.
+   * @param {dw.svc.Service} service - The service instance.
    * @returns {dw.svc.Result} The transformed service result.
    */
-  _handleErrorResult: function (serviceResult) {
+  _handleErrorResult: function (serviceResult, service) {
     var result = serviceResult;
 
     if (serviceResult instanceof Error) {
@@ -162,9 +156,10 @@ var BaseService = {
    *
    * @protected
    * @param {dw.svc.Result} result - The successful service result.
+   * @param {dw.svc.HTTPService} service - The service instance.
    * @returns {dw.svc.Result} The input result.
    */
-  _handleSuccessResult: function (result) {
+  _handleSuccessResult: function (result, service) {
     return result;
   }
 };

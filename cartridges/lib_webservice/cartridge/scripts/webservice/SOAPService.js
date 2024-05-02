@@ -96,7 +96,7 @@ var SOAPService = BaseService.extend({
    * @protected
    */
   _setHTTPHeaders: function (svc, httpHeaders) {
-    if (typeof httpHeaders === 'object') {
+    if (httpHeaders !== null && typeof httpHeaders === 'object') {
       Object.keys(httpHeaders).forEach(function (header) {
         WSUtil.setHTTPRequestHeader(svc.serviceClient, header, httpHeaders[header]);
       });
@@ -130,7 +130,7 @@ var SOAPService = BaseService.extend({
   _setProperties: function (svc, properties) {
     var Port = require('dw/ws/Port');
 
-    if (typeof properties === 'object') {
+    if (properties !== null && typeof properties === 'object') {
       Object.keys(properties).forEach(function (property) {
         switch (property) {
           case 'encoding':
