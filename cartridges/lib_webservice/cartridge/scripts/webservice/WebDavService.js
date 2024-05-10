@@ -124,7 +124,7 @@ var WebDavService = BaseService.extend({
   // eslint-disable-next-line no-unused-vars
   _getServiceCredential: function (svc, params) {
     return svc.configuration.credential;
-  }
+  },
 });
 
 /**

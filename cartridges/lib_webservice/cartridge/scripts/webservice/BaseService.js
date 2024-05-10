@@ -9,7 +9,7 @@ var BaseService = {
    * @type {Object.<string, string>}
    */
   SERVICE_CONFIGURATIONS: {
-    default: ''
+    default: '',
   },
 
   /**
@@ -23,17 +23,14 @@ var BaseService = {
     'parseResponse',
     'filterLogMessage',
     'getRequestLogMessage',
-    'getResponseLogMessage'
+    'getResponseLogMessage',
   ],
 
   /**
    * Names of callback methods that can be provided for configuring service mock behavior.
    * @type {string[]}
    */
-  SERVICE_CALLBACK_MOCK_METHODS: [
-    'mockCall',
-    'mockFull'
-  ],
+  SERVICE_CALLBACK_MOCK_METHODS: ['mockCall', 'mockFull'],
 
   /**
    * Extend Service
@@ -55,16 +52,14 @@ var BaseService = {
   fetch: function (aliasOrArgs, args) {
     var alias = args ? aliasOrArgs : 'default';
     var params = args || aliasOrArgs;
+    var service;
+    var result;
 
     try {
-      var service = this._createService(alias, params);
-      var result = service.call(params);
+      service = this._createService(alias, params);
+      result = service.call(params);
 
-      if (!result.ok) {
-        return this._handleErrorResult(result, service);
-      }
-
-      return this._handleSuccessResult(result, service);
+      return result.ok ? this._handleSuccessResult(result, service) : this._handleErrorResult(result, service);
     } catch (err) {
       return this._handleErrorResult(err, service);
     }
@@ -144,7 +139,7 @@ var BaseService = {
         object: null,
         ok: false,
         status: 'ERROR',
-        unavailableReason: null
+        unavailableReason: null,
       };
     }
 
@@ -156,12 +151,12 @@ var BaseService = {
    *
    * @protected
    * @param {dw.svc.Result} result - The successful service result.
-   * @param {dw.svc.HTTPService} service - The service instance.
+   * @param {dw.svc.Service} service - The service instance.
    * @returns {dw.svc.Result} The input result.
    */
   _handleSuccessResult: function (result, service) {
     return result;
-  }
+  },
 };
 
 module.exports = BaseService;

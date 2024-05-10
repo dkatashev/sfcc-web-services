@@ -92,7 +92,7 @@ var SFTPService = BaseService.extend({
       default:
         throw new Error('(S)FTP URL is invalid!');
     }
-  }
+  },
 });
 
 /**

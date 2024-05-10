@@ -57,7 +57,7 @@ var MailService = BaseService.extend({
     }
 
     return result;
-  }
+  },
 });
 
 /**

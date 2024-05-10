@@ -16,12 +16,13 @@ var RestService = BaseService.extend({
    */
   createRequest: function (svc, params) {
     // Merge params with default values
-    var args = Object.assign({
+    var defaults = {
       method: 'GET',
       pathPatterns: {},
       queryParams: {},
       headers: {},
-    }, params);
+    };
+    var args = Object.assign(defaults, params);
 
     // Extract credential and URL
     var credential = this._getServiceCredential(svc, args);
@@ -150,7 +151,7 @@ var RestService = BaseService.extend({
 
     return {
       type: matched[0],
-      encoding: matched[1] || 'UTF-8'
+      encoding: matched[1] || 'UTF-8',
     };
   },
 
@@ -201,12 +202,11 @@ var RestService = BaseService.extend({
   _createFormBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-    return Object.keys(data).map(function (key) {
-      return [
-        this._encodeURI(key),
-        this._encodeURI(data[key])
-      ].join('=');
-    }, this).join('&');
+    return Object.keys(data)
+      .map(function (key) {
+        return [this._encodeURI(key), this._encodeURI(data[key])].join('=');
+      }, this)
+      .join('&');
   },
 
   /**
@@ -258,7 +258,7 @@ var RestService = BaseService.extend({
 
       return state;
     }, {});
-  }
+  },
 });
 
 /**

@@ -13,7 +13,7 @@ var SOAPService = BaseService.extend({
   state: {
     webReference: null,
     webReferencePort: null,
-    operation: null
+    operation: null,
   },
 
   /**
@@ -78,12 +78,7 @@ var SOAPService = BaseService.extend({
   _addSOAPHeaders: function (svc, soapHeaders) {
     if (Array.isArray(soapHeaders)) {
       soapHeaders.forEach(function (soapHeader) {
-        WSUtil.addSOAPHeader(
-          svc.serviceClient,
-          soapHeader.header,
-          soapHeader.mustUnderstand,
-          soapHeader.actor
-        );
+        WSUtil.addSOAPHeader(svc.serviceClient, soapHeader.header, soapHeader.mustUnderstand, soapHeader.actor);
       });
     }
   },
@@ -112,11 +107,7 @@ var SOAPService = BaseService.extend({
    */
   _setWSSecurityConfig: function (svc, securityConfig) {
     if (securityConfig && securityConfig.requestConfigMap && securityConfig.responseConfigMap) {
-      WSUtil.setWSSecurityConfig(
-        svc.serviceClient,
-        securityConfig.requestConfigMap,
-        securityConfig.responseConfigMap
-      );
+      WSUtil.setWSSecurityConfig(svc.serviceClient, securityConfig.requestConfigMap, securityConfig.responseConfigMap);
     }
   },
 
@@ -144,7 +135,7 @@ var SOAPService = BaseService.extend({
         }
       });
     }
-  }
+  },
 });
 
 /**

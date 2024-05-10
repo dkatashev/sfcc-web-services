@@ -13,7 +13,7 @@ var RestAuthService = RestService.extend({
    */
   SERVICE_CONFIGURATIONS: {
     default: '',
-    auth: ''
+    auth: '',
   },
 
   /**
@@ -32,8 +32,8 @@ var RestAuthService = RestService.extend({
       method: 'POST',
       dataType: 'form',
       data: {
-        grant_type: 'client_credentials'
-      }
+        grant_type: 'client_credentials',
+      },
     });
   },
 
@@ -59,12 +59,12 @@ var RestAuthService = RestService.extend({
 
       return {
         type: result.object.token_type,
-        credentials: result.object.access_token
+        credentials: result.object.access_token,
       };
     });
 
     return authentication;
-  }
+  },
 });
 
 module.exports = RestAuthService;
