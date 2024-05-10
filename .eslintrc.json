@@ -11,6 +11,7 @@
     "no-underscore-dangle": "off",
     "func-names": "off",
     "global-require": "off",
-    "no-param-reassign": "off"
+    "no-param-reassign": "off",
+    "comma-dangle": "off"
   }
 }

@@ -67,8 +67,8 @@ var RestService = BaseService.extend({
     if (args.auth) {
       svc.setAuthentication('NONE');
 
-      if (auth.type && auth.credentials) {
-        svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
+      if (args.auth.type && args.auth.credentials) {
+        svc.addHeader('Authorization', args.auth.type + ' ' + args.auth.credentials);
       }
     }
 

@@ -128,6 +128,7 @@ var BaseService = {
    * @param {dw.svc.Service} service - The service instance.
    * @returns {dw.svc.Result} The transformed service result.
    */
+  // eslint-disable-next-line no-unused-vars
   _handleErrorResult: function (serviceResult, service) {
     var result = serviceResult;
 
@@ -154,6 +155,7 @@ var BaseService = {
    * @param {dw.svc.Service} service - The service instance.
    * @returns {dw.svc.Result} The input result.
    */
+  // eslint-disable-next-line no-unused-vars
   _handleSuccessResult: function (result, service) {
     return result;
   },

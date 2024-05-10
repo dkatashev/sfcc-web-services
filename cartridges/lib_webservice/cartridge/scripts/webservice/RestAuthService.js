@@ -45,6 +45,7 @@ var RestAuthService = RestService.extend({
    * @param {dw.svc.ServiceCredential} credential
    * @returns {import('./RestService').Authentication}
    */
+  // eslint-disable-next-line no-unused-vars
   getAuthentication: function (args, svc, credential) {
     var CacheMgr = require('dw/system/CacheMgr');
     var cache = CacheMgr.getCache(this.CACHE_ID);
