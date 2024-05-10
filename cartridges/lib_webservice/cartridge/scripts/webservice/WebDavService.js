@@ -10,7 +10,7 @@ var WebDavService = BaseService.extend({
   /**
    * Creates a request for the WebDAV service.
    *
-   * @param {dw.svc.Service & {client: dw.net.WebDAVClient}} svc - The WebDAV service instance.
+   * @param {WebDAVService} svc - The WebDAV service instance.
    * @param {WebdavParams} params - The parameters for creating the request.
    * @returns {WebdavParams} The input parameters.
    */
@@ -19,15 +19,18 @@ var WebDavService = BaseService.extend({
 
     var credential = this._getServiceCredential(svc, params);
     var url = credential.getURL();
-    var headers = params.headers || {};
-    var pathPatterns = params.pathPatterns || {};
+    var defaults = {
+      headers: {},
+      pathPatterns: {},
+    };
+    var args = Object.assign(defaults, params);
 
     /**
      * @description Replace path pattern with values
      * @example https://test.com/:testParam
      */
-    Object.keys(pathPatterns).forEach(function (pathParam) {
-      url = url.replace(new RegExp(':' + pathParam), pathPatterns[pathParam]);
+    Object.keys(args.pathPatterns).forEach(function (pathParam) {
+      url = url.replace(new RegExp(':' + pathParam), args.pathPatterns[pathParam]);
     });
 
     svc.setURL(url);
@@ -45,9 +48,14 @@ var WebDavService = BaseService.extend({
      * @description Add header to request
      * @example Accept: application/json
      */
-    Object.keys(headers).forEach(function (header) {
-      svc.client.addRequestHeader(header, headers[header]);
+    Object.keys(args.headers).forEach(function (header) {
+      svc.client.addRequestHeader(header, args.headers[header]);
     });
+
+    // Could be used to inject custom logic per call
+    if (typeof args.onCreateRequest === 'function') {
+      args.onCreateRequest(args, svc, credential);
+    }
 
     return params;
   },
@@ -55,7 +63,7 @@ var WebDavService = BaseService.extend({
   /**
    * Executes the WebDAV service operations.
    *
-   * @param {dw.svc.Service & {client: dw.net.WebDAVClient}} svc - The WebDAV service instance.
+   * @param {WebDAVService} svc - The WebDAV service instance.
    * @param {WebdavParams} params - The parameters for executing the operations.
    * @returns {*} The result of the executed operation.
    * @throws {Error} If the WebDAV call fails.
@@ -92,7 +100,7 @@ var WebDavService = BaseService.extend({
   /**
    * Parses the response from the WebDAV service and close client.
    *
-   * @param {dw.svc.Service & {client: dw.net.WebDAVClient}} svc - The WebDAV service instance.
+   * @param {WebDAVService} svc - The WebDAV service instance.
    * @param {*} response - The response to parse.
    * @returns {*} The parsed response.
    */
@@ -117,7 +125,7 @@ var WebDavService = BaseService.extend({
    * Retrieves the service credential for the WebDAV service.
    *
    * @private
-   * @param {dw.svc.Service & {client: dw.svc.WebDAVClient}} svc - The WebDAV service instance.
+   * @param {WebDAVService} svc - The WebDAV service instance.
    * @param {RequestParams} params - The WebDAV parameters.
    * @returns {dw.svc.ServiceCredential} The service credential.
    */
@@ -128,10 +136,23 @@ var WebDavService = BaseService.extend({
 });
 
 /**
+ * @typedef {dw.svc.Service & {client: dw.svc.WebDAVClient}} WebDAVService
+ */
+
+/**
  * Callback function for executing WebDAV operations.
  * @callback onExecute
- * @param {dw.svc.Service & {client: dw.svc.WebDAVClient}} svc - The FTP service instance.
+ * @param {WebDAVService} svc - The FTP service instance.
  * @returns {*} The result of the executed operations.
+ */
+
+/**
+ * Callback function for customizing the WebDAV request.
+ * @callback onCreateRequest
+ * @param {WebdavParams} params - The REST parameters.
+ * @param {WebDAVService} svc - The service instance.
+ * @param {dw.svc.ServiceCredential} serviceCredential - The service credential.
+ * @returns {void}
  */
 
 /**
