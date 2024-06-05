@@ -110,8 +110,15 @@ var BaseService = {
     var configCallbacks = {};
     var self = this;
 
-    /** Prepare service callback */
-    this.SERVICE_CALLBACK_METHODS.concat(this.SERVICE_CALLBACK_MOCK_METHODS).forEach(function (method) {
+    /** Prepare service callback common methods */
+    this.SERVICE_CALLBACK_METHODS.forEach(function (method) {
+      if (typeof self[method] === 'function') {
+        configCallbacks[method] = self[method].bind(self);
+      }
+    });
+
+    /** Prepare service callback mock methods */
+    this.SERVICE_CALLBACK_MOCK_METHODS.forEach(function (method) {
       if (typeof params[method] === 'function') {
         configCallbacks[method] = params[method].bind(self);
       }

@@ -9,13 +9,6 @@ var BaseService = require('*/cartridge/scripts/webservice/BaseService');
  * Represents a SOAP Service.
  */
 var SOAPService = BaseService.extend({
-  /** @type {SOAPState} */
-  state: {
-    webReference: null,
-    webReferencePort: null,
-    operation: null,
-  },
-
   /**
    * Creates a SOAP request based on the provided parameters.
    *
@@ -24,13 +17,12 @@ var SOAPService = BaseService.extend({
    * @returns {*} The SOAP request.
    */
   createRequest: function (svc, params) {
-    this.state.webReference = webreferences2[params.webReference];
-    this.state.webReferencePort = params.service
-      ? this.state.webReference.getService(params.service.name, params.service.port)
-      : this.state.webReference.defaultService;
-    this.state.operation = params.operation;
-
-    svc.setServiceClient(this.state.webReferencePort);
+    svc.webReference = webreferences2[params.webReference];
+    svc.webReferencePort = params.service
+      ? svc.webReference.getService(params.service.name, params.service.port)
+      : svc.webReference.defaultService;
+    svc.operation = params.operation;
+    svc.setServiceClient(svc.webReferencePort);
 
     this._addSOAPHeaders(svc, params.soapHeaders);
     this._setHTTPHeaders(svc, params.httpHeaders);
@@ -41,7 +33,7 @@ var SOAPService = BaseService.extend({
       params.onCreateRequest(params, svc);
     }
 
-    var request = params.getRequest(svc, this.state.webReference);
+    var request = params.getRequest(svc, svc.webReference);
 
     return request;
   },
@@ -54,7 +46,7 @@ var SOAPService = BaseService.extend({
    * @returns {*} The response object.
    */
   execute: function (svc, requestObject) {
-    return svc.serviceClient[this.state.operation](requestObject);
+    return svc.serviceClient[svc.operation](requestObject);
   },
 
   /**
@@ -137,14 +129,6 @@ var SOAPService = BaseService.extend({
     }
   },
 });
-
-/**
- * Represents state for the SOAP service.
- * @typedef {Object} SOAPState
- * @property {dw.ws.WebReference2} webReference - The WebReference object.
- * @property {dw.ws.Port} webReferencePort - The Port object.
- * @property {string} operation - The operation being performed.
- */
 
 /**
  * Represents parameters for the SOAP service.
