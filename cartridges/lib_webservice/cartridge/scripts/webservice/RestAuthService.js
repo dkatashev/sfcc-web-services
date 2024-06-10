@@ -23,6 +23,12 @@ var RestAuthService = RestService.extend({
   CACHE_ID: '',
 
   /**
+   * KEY of the custom cache used to store access tokens.
+   * @type {string}
+   */
+  CACHE_KEY: '',
+
+  /**
    * Performs authorization using the 'auth' service action.
    *
    * @returns {dw.svc.Result} The result of the authorization request.
@@ -51,7 +57,7 @@ var RestAuthService = RestService.extend({
     var cache = CacheMgr.getCache(this.CACHE_ID);
     var self = this;
 
-    var authentication = cache.get('credential', function () {
+    var authentication = cache.get(this.CACHE_KEY, function () {
       var result = self.authorize();
 
       if (!result.ok) {

@@ -28,6 +28,11 @@ var RestService = BaseService.extend({
     var credential = this._getServiceCredential(svc, args);
     var url = credential.getURL();
 
+    // Could be used to inject custom logic per call
+    if (typeof args.onCreateRequest === 'function') {
+      args.onCreateRequest(args, svc, credential);
+    }
+
     // Set request method
     svc.setRequestMethod(args.method);
 
@@ -90,11 +95,6 @@ var RestService = BaseService.extend({
     // Enables caching for GET requests.
     if (args.ttl) {
       svc.setCachingTTL(args.ttl);
-    }
-
-    // Could be used to inject custom logic per call
-    if (typeof args.onCreateRequest === 'function') {
-      args.onCreateRequest(args, svc, credential);
     }
 
     // Restrict request body by request method
