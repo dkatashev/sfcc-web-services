@@ -17,6 +17,10 @@ var SOAPService = BaseService.extend({
    * @returns {*} The SOAP request.
    */
   createRequest: function (svc, params) {
+    if (typeof params.onCreateRequest === 'function') {
+      params.onCreateRequest(params, svc);
+    }
+
     svc.webReference = webreferences2[params.webReference];
     svc.webReferencePort = params.service
       ? svc.webReference.getService(params.service.name, params.service.port)
@@ -28,10 +32,6 @@ var SOAPService = BaseService.extend({
     this._setHTTPHeaders(svc, params.httpHeaders);
     this._setWSSecurityConfig(svc, params.securityConfig);
     this._setProperties(svc, params.properties);
-
-    if (typeof params.onCreateRequest === 'function') {
-      params.onCreateRequest(params, svc);
-    }
 
     var request = params.getRequest(svc, svc.webReference);
 

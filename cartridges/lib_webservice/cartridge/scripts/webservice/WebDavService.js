@@ -25,6 +25,11 @@ var WebDavService = BaseService.extend({
     };
     var args = Object.assign(defaults, params);
 
+    // Could be used to inject custom logic per call
+    if (typeof args.onCreateRequest === 'function') {
+      args.onCreateRequest(args, svc, credential);
+    }
+
     /**
      * @description Replace path pattern with values
      * @example https://test.com/:testParam
@@ -51,11 +56,6 @@ var WebDavService = BaseService.extend({
     Object.keys(args.headers).forEach(function (header) {
       svc.client.addRequestHeader(header, args.headers[header]);
     });
-
-    // Could be used to inject custom logic per call
-    if (typeof args.onCreateRequest === 'function') {
-      args.onCreateRequest(args, svc, credential);
-    }
 
     return params;
   },
