@@ -12,6 +12,9 @@
     "func-names": "off",
     "global-require": "off",
     "no-param-reassign": "off",
-    "comma-dangle": "off"
+    "comma-dangle": "off",
+    "no-control-regex": "off",
+    "spaced-comment": "off",
+    "no-plusplus": "off"
   }
 }

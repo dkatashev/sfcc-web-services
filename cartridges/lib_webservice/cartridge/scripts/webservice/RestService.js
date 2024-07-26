@@ -2,6 +2,12 @@
 
 /** @type {import('./BaseService')} */
 var BaseService = require('*/cartridge/scripts/webservice/BaseService');
+/** @type {import('../util/contentType')} */
+var contentType = require('*/cartridge/scripts/util/contentType');
+/** @type {import('../util/urlencoded')} */
+var urlencoded = require('*/cartridge/scripts/util/urlencoded');
+/** @type {import('../util/multipart')} */
+var multipart = require('*/cartridge/scripts/util/multipart');
 
 /**
  * Represents a REST Service.
@@ -70,11 +76,7 @@ var RestService = BaseService.extend({
 
     // Set HTTP Authorization Header
     if (args.auth) {
-      svc.setAuthentication('NONE');
-
-      if (args.auth.type && args.auth.credentials) {
-        svc.addHeader('Authorization', args.auth.type + ' ' + args.auth.credentials);
-      }
+      this._setAuthorizationHeader(svc, args.auth);
     }
 
     // Sets the output file in which to write the HTTP response body.
@@ -87,7 +89,7 @@ var RestService = BaseService.extend({
       svc.setIdentity(args.keyRef);
     }
 
-    // Sets the encoding of the request body (if any).
+    // Sets the encoding of the request body.
     if (args.encoding) {
       svc.setEncoding(args.encoding);
     }
@@ -102,57 +104,8 @@ var RestService = BaseService.extend({
       return undefined;
     }
 
-    // Convert data to string
-    switch (args.dataType) {
-      case 'form':
-        return this._createFormBody(svc, args.data);
-      case 'xml':
-        return this._createXMLBody(svc, args.data);
-      default:
-        return this._createJSONBody(svc, args.data);
-    }
-  },
-
-  /**
-   * Parses the HTTP response for the REST service.
-   *
-   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
-   * @param {Object} response - The HTTP response.
-   * @returns {string|Object} The parsed response content.
-   */
-  parseResponse: function (svc, response) {
-    var contentType = this._getResponseContentType(svc);
-
-    switch (contentType.type) {
-      case 'application/json':
-        return JSON.parse(response.text);
-      case 'application/xml':
-      case 'text/xml':
-        return new XML(response.text);
-      case 'application/x-www-form-urlencoded':
-        return this._parseFormBody(response.text);
-      default:
-        return response.text;
-    }
-  },
-
-  /**
-   * Retrieves the content type from the HTTP response.
-   *
-   * @protected
-   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
-   * @returns {{type: string, encoding: string}} The content type and encoding.
-   */
-  _getResponseContentType: function (svc) {
-    var header = svc.client.getResponseHeader('Content-Type') || '';
-    var matched = header.split(';').map(function (value) {
-      return value.trim();
-    });
-
-    return {
-      type: matched[0],
-      encoding: matched[1] || 'UTF-8',
-    };
+    // Create request body with appropriate content-type header
+    return this._createRequestBody(svc, args.dataType, args.data);
   },
 
   /**
@@ -169,27 +122,34 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * Encodes a string for use in a URI.
-   *
-   * @protected
-   * @param {string} str - The string to be encoded.
-   * @returns {string} The encoded string.
+   * @param {dw.svc.HTTPService} svc
+   * @param {Authentication} auth
    */
-  _encodeURI: function (str) {
-    return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
-      return '%' + c.charCodeAt(0).toString(16);
-    });
+  _setAuthorizationHeader: function (svc, auth) {
+    svc.setAuthentication('NONE');
+
+    if (auth.type && auth.credentials) {
+      svc.addHeader('Authorization', auth.type + ' ' + auth.credentials);
+    }
   },
 
   /**
-   * Decodes a URI-encoded string.
-   *
-   * @protected
-   * @param {string} str - The URI-encoded string to be decoded.
-   * @returns {string} The decoded string.
+   * @param {dw.svc.HTTPService} svc
+   * @param {RestParams['dataType']} dataType
+   * @param {*} data
+   * @returns {string}
    */
-  _decodeURI: function (str) {
-    return decodeURIComponent((str + '').replace(/\+/g, '%20'));
+  _createRequestBody: function (svc, dataType, data) {
+    switch (dataType) {
+      case 'form':
+        return this._createFormBody(svc, data);
+      case 'xml':
+        return this._createXmlBody(svc, data);
+      case 'multipart':
+        return this._createMultipartBody(svc, data);
+      default:
+        return this._createJsonBody(svc, data);
+    }
   },
 
   /**
@@ -202,11 +162,7 @@ var RestService = BaseService.extend({
   _createFormBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/x-www-form-urlencoded');
 
-    return Object.keys(data)
-      .map(function (key) {
-        return [this._encodeURI(key), this._encodeURI(data[key])].join('=');
-      }, this)
-      .join('&');
+    return urlencoded.format(data);
   },
 
   /**
@@ -216,7 +172,7 @@ var RestService = BaseService.extend({
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object.<string,string>} data - The body data.
    */
-  _createJSONBody: function (svc, data) {
+  _createJsonBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/json');
 
     return JSON.stringify(data);
@@ -229,7 +185,7 @@ var RestService = BaseService.extend({
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object.<string,string>} data - The body data.
    */
-  _createXMLBody: function (svc, data) {
+  _createXmlBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/xml');
 
     if (data instanceof XML) {
@@ -240,26 +196,94 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * Transform body response to data object.
+   * Prepare multipart body.
    *
-   * @protected
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
-   * @param {Object.<string,string>} data - The body data.
+   * @param {Object} data - The multipart data.
+   * @param {string} data.type - The multipart content type.
+   * @param {Object} data.boundary - The multipart boundary.
+   * @param {dw.net.HTTPRequestPart[]} data.parts - The multipart boundary.
+   * @returns {string}
    */
-  _parseFormBody: function (text) {
-    var self = this;
+  _createMultipartBody: function (svc, data) {
+    var contentTypeHeader = contentType.format({
+      type: data.type,
+      params: {
+        boundary: data.boundary
+      }
+    });
 
-    return text.split('&').reduce(function (state, next) {
-      var pairs = next.split('=');
-      var key = self._decodeURI(pairs[0]);
-      var value = self._decodeURI(pairs[1]);
+    svc.addHeader('Content-Type', contentTypeHeader);
 
-      state[key] = value;
-
-      return state;
-    }, {});
+    return data.parts;
   },
+
+  /**
+   * Parses the HTTP response for the REST service.
+   *
+   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
+   * @param {dw.net.HTTPClient} response - The HTTP response.
+   * @returns {string|Object} The parsed response content.
+   */
+  parseResponse: function (svc, response) {
+    var contentTypeHeader = response.getResponseHeader('Content-Type') || '';
+    var contentTypeObject = contentType.toObject(contentTypeHeader);
+
+    return this._parseResponseBody(contentTypeObject, response);
+  },
+
+  /**
+   * Parses the HTTP response body for the REST service.
+   *
+   * @param {ContentType} contentTypeObject - The content type object.
+   * @param {dw.net.HTTPClient} response - The HTTP response.
+   * @returns {string|Object} The parsed response content.
+   */
+  _parseResponseBody: function (contentTypeObject, response) {
+    switch (contentTypeObject.type) {
+      case 'application/json':
+        return JSON.parse(response.text);
+      case 'application/xml':
+      case 'text/xml':
+        return new XML(response.text);
+      case 'application/x-www-form-urlencoded':
+        return urlencoded.parse(response.text);
+      case 'multipart/mixed':
+        return this._parseResponseMultipart(contentTypeObject.params.boundary, response.text);
+      case 'application/octet-stream':
+        return response.bytes;
+      default:
+        return response.text;
+    }
+  },
+
+  /**
+   * Parses the HTTP response multipart body for the REST service.
+   *
+   * @param {string} boundary - The multipart boundary.
+   * @param {string} responseText - The HTTP response body text.
+   * @returns {import('../util/multipart').MultipartChunk[]} - The parsed multipart chunks.
+   */
+  _parseResponseMultipart: function (boundary, responseText) {
+    return multipart.parse(boundary, responseText).map(function (part) {
+      var partContentTypeHeader = part.headers['content-type'] || 'text/plain';
+      var partContentTypeObject = contentType.parse(partContentTypeHeader);
+
+      part.body = this._parseResponseBody(partContentTypeObject, {
+        text: part.body
+      });
+
+      return part;
+    }, this);
+  }
 });
+
+/**
+ * Represents content type information.
+ * @typedef {Object} ContentType
+ * @property {string} type - The type of authentication.
+ * @property {Object.<string,string>} params - The authentication credentials.
+ */
 
 /**
  * Represents an authentication configuration.
