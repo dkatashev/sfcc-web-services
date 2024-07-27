@@ -18,7 +18,7 @@ var RestService = BaseService.extend({
    *
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {RestParams} params - The parameters for creating the request.
-   * @returns {string|undefined} The request body, if applicable.
+   * @returns {string|dw.net.HTTPRequestPart[]|undefined} The request body, if applicable.
    */
   createRequest: function (svc, params) {
     // Merge params with default values
@@ -111,7 +111,6 @@ var RestService = BaseService.extend({
   /**
    * Retrieves the service credential for the REST service.
    *
-   * @protected
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {RestParams} params - The REST parameters.
    * @returns {dw.svc.ServiceCredential} The service credential.
@@ -122,8 +121,10 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * @param {dw.svc.HTTPService} svc
-   * @param {Authentication} auth
+   * Set custom Authorization header and disable Basic Authentication.
+   *
+   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
+   * @param {Authentication} auth - The authentication configuration.
    */
   _setAuthorizationHeader: function (svc, auth) {
     svc.setAuthentication('NONE');
@@ -134,10 +135,12 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * @param {dw.svc.HTTPService} svc
-   * @param {RestParams['dataType']} dataType
-   * @param {*} data
-   * @returns {string}
+   * Transform data object to string or use dw.net.HTTPRequestPart[].
+   *
+   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
+   * @param {RestParams['dataType']} dataType - The type of data being sent.
+   * @param {*} data - The data to be sent in the request.
+   * @returns {string|dw.net.HTTPRequestPart[]} The formatted request body.
    */
   _createRequestBody: function (svc, dataType, data) {
     switch (dataType) {
@@ -147,6 +150,8 @@ var RestService = BaseService.extend({
         return this._createXmlBody(svc, data);
       case 'multipart':
         return this._createMultipartBody(svc, data);
+      case 'mixed':
+        return this._createMixedBody(svc, data);
       default:
         return this._createJsonBody(svc, data);
     }
@@ -155,9 +160,9 @@ var RestService = BaseService.extend({
   /**
    * Transform data object to URI-encoded string.
    *
-   * @protected
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object.<string,string>} data - The body data.
+   * @returns {string} The formatted form body.
    */
   _createFormBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/x-www-form-urlencoded');
@@ -168,9 +173,9 @@ var RestService = BaseService.extend({
   /**
    * Transform data object to JSON string.
    *
-   * @protected
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object.<string,string>} data - The body data.
+   * @returns {string} The formatted JSON body.
    */
   _createJsonBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/json');
@@ -181,9 +186,9 @@ var RestService = BaseService.extend({
   /**
    * Transform data object to XML string.
    *
-   * @protected
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object.<string,string>} data - The body data.
+   * @returns {string} The formatted XML body.
    */
   _createXmlBody: function (svc, data) {
     svc.addHeader('Content-Type', 'application/xml');
@@ -196,18 +201,38 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * Prepare multipart body.
+   * Prepare multipart/form-data body.
+   *
+   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
+   * @param {dw.net.HTTPRequestPart[]} data - The multipart data.
+   * @returns {dw.net.HTTPRequestPart[]} The multipart request parts.
+   */
+  _createMultipartBody: function (svc, data) {
+    var HTTPRequestPart = require('dw/net/HTTPRequestPart');
+    var isHTTPRequestPart = function (part) {
+      return part instanceof HTTPRequestPart;
+    };
+
+    if (!Array.isArray(data) || !data.every(isHTTPRequestPart)) {
+      throw new TypeError('Incorrect "data". It should be array of dw.net.HTTPRequestPart.');
+    }
+
+    // Content type will be set to multipart/form-data and boundary created automagically.
+    return data;
+  },
+
+  /**
+   * Prepare multipart/mixed body.
    *
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.
    * @param {Object} data - The multipart data.
-   * @param {string} data.type - The multipart content type.
-   * @param {Object} data.boundary - The multipart boundary.
-   * @param {dw.net.HTTPRequestPart[]} data.parts - The multipart boundary.
-   * @returns {string}
+   * @param {string} data.boundary - The multipart boundary.
+   * @param {MultipartChunk[]} data.parts - The multipart parts.
+   * @returns {string} The formatted multipart body.
    */
-  _createMultipartBody: function (svc, data) {
+  _createMixedBody: function (svc, data) {
     var contentTypeHeader = contentType.format({
-      type: data.type,
+      type: 'multipart/mixed',
       params: {
         boundary: data.boundary
       }
@@ -215,7 +240,7 @@ var RestService = BaseService.extend({
 
     svc.addHeader('Content-Type', contentTypeHeader);
 
-    return data.parts;
+    return multipart.format(data.boundary, data.parts);
   },
 
   /**
@@ -227,7 +252,7 @@ var RestService = BaseService.extend({
    */
   parseResponse: function (svc, response) {
     var contentTypeHeader = response.getResponseHeader('Content-Type') || '';
-    var contentTypeObject = contentType.toObject(contentTypeHeader);
+    var contentTypeObject = contentType.parse(contentTypeHeader);
 
     return this._parseResponseBody(contentTypeObject, response);
   },
@@ -262,15 +287,18 @@ var RestService = BaseService.extend({
    *
    * @param {string} boundary - The multipart boundary.
    * @param {string} responseText - The HTTP response body text.
-   * @returns {import('../util/multipart').MultipartChunk[]} - The parsed multipart chunks.
+   * @returns {MultipartChunk[]} The parsed multipart chunks.
    */
   _parseResponseMultipart: function (boundary, responseText) {
+    var Bytes = require('dw/util/Bytes');
+
     return multipart.parse(boundary, responseText).map(function (part) {
       var partContentTypeHeader = part.headers['content-type'] || 'text/plain';
       var partContentTypeObject = contentType.parse(partContentTypeHeader);
 
       part.body = this._parseResponseBody(partContentTypeObject, {
-        text: part.body
+        text: part.body,
+        bytes: new Bytes(part.body)
       });
 
       return part;
@@ -279,10 +307,11 @@ var RestService = BaseService.extend({
 });
 
 /**
- * Represents content type information.
- * @typedef {Object} ContentType
- * @property {string} type - The type of authentication.
- * @property {Object.<string,string>} params - The authentication credentials.
+ * @typedef {import('../util/contentType').ContentType} ContentType
+ */
+
+/**
+ * @typedef {import('../util/multipart').MultipartChunk} MultipartChunk
  */
 
 /**
@@ -318,7 +347,7 @@ var RestService = BaseService.extend({
  * @property {Object.<string,string>} [pathPatterns] - The path pattern replacements.
  * @property {Object.<string,string>} [queryParams] - The query parameters.
  * @property {Object.<string,string>} [headers] - The request headers.
- * @property {('form'|'json'|'xml')} [dataType] - The type of data being sent.
+ * @property {('form'|'json'|'xml'|'multipart'|'mixed')} [dataType] - The type of data being sent.
  * @property {*} [data] - The data to be sent in the request.
  * @property {dw.io.File} [outFile] - The output file for the response body.
  * @property {dw.crypto.KeyRef} [keyRef] - The key reference for mutual TLS.
