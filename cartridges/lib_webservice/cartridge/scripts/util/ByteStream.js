@@ -238,9 +238,8 @@ ByteStream.prototype.readUntil = function (sequence) {
   }
 
   // Handle case when sequence is not found but the stream ends
-  result = this.slice(start, this.length);
-  this.position = this.length;
-  return result;
+  this.move(this.length - this.position);
+  return null;
 };
 
 module.exports = ByteStream;
