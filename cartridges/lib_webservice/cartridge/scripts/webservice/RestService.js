@@ -109,18 +109,6 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * Retrieves the service credential for the REST service.
-   *
-   * @param {dw.svc.HTTPService} svc - The HTTP service instance.
-   * @param {RestParams} params - The REST parameters.
-   * @returns {dw.svc.ServiceCredential} The service credential.
-   */
-  // eslint-disable-next-line no-unused-vars
-  _getServiceCredential: function (svc, params) {
-    return svc.configuration.credential;
-  },
-
-  /**
    * Set custom Authorization header and disable Basic Authentication.
    *
    * @param {dw.svc.HTTPService} svc - The HTTP service instance.

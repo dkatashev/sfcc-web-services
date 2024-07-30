@@ -166,6 +166,18 @@ var BaseService = {
   _handleSuccessResult: function (result, service) {
     return result;
   },
+
+  /**
+   * Retrieves the service credential for the service.
+   *
+   * @param {dw.svc.Service} svc - The service instance.
+   * @param {*} params - The service parameters.
+   * @returns {dw.svc.ServiceCredential} The service credential.
+   */
+  // eslint-disable-next-line no-unused-vars
+  _getServiceCredential: function (svc, params) {
+    return svc.configuration.credential;
+  },
 };
 
 module.exports = BaseService;

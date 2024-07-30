@@ -120,19 +120,6 @@ var WebDavService = BaseService.extend({
 
     return response;
   },
-
-  /**
-   * Retrieves the service credential for the WebDAV service.
-   *
-   * @private
-   * @param {WebDAVService} svc - The WebDAV service instance.
-   * @param {RequestParams} params - The WebDAV parameters.
-   * @returns {dw.svc.ServiceCredential} The service credential.
-   */
-  // eslint-disable-next-line no-unused-vars
-  _getServiceCredential: function (svc, params) {
-    return svc.configuration.credential;
-  },
 });
 
 /**

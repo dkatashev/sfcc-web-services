@@ -62,18 +62,6 @@ var SFTPService = BaseService.extend({
   },
 
   /**
-   * Retrieves the service credential for the (S)FTP service.
-   *
-   * @protected
-   * @param {dw.svc.FTPService} svc - The (S)FTP service instance.
-   * @returns {dw.svc.ServiceCredential} The service credential.
-   */
-  // eslint-disable-next-line no-unused-vars
-  _getServiceCredential: function (svc) {
-    return svc.configuration.credential;
-  },
-
-  /**
    * Return an FTP or SFTP client
    *
    * @protected
