@@ -7,26 +7,12 @@ var Encoding = require('dw/crypto/Encoding');
  */
 module.exports = {
   /**
-   * Converts an object to a URL-encoded string.
-   *
-   * @param {Object.<string, string>} data - The data object to be converted.
-   * @returns {string} The URL-encoded string.
-   */
-  parse: function (data) {
-    return Object.keys(data)
-      .map(function (key) {
-        return Encoding.toURI(key) + '=' + Encoding.toURI(data[key]);
-      })
-      .join('&');
-  },
-
-  /**
    * Converts a URL-encoded string to an object.
    *
    * @param {string} urlEncoded - The URL-encoded string to be converted.
    * @returns {Object.<string, string>} The resulting object.
    */
-  format: function (urlEncoded) {
+  parse: function (urlEncoded) {
     return urlEncoded.split('&').reduce(function (state, next) {
       var pairs = next.split('=');
       var key = Encoding.fromURI(pairs[0]);
@@ -35,5 +21,19 @@ module.exports = {
       state[key] = value;
       return state;
     }, {});
+  },
+
+  /**
+   * Converts an object to a URL-encoded string.
+   *
+   * @param {Object.<string, string>} data - The data object to be converted.
+   * @returns {string} The URL-encoded string.
+   */
+  format: function (data) {
+    return Object.keys(data)
+      .map(function (key) {
+        return Encoding.toURI(key) + '=' + Encoding.toURI(data[key]);
+      })
+      .join('&');
   },
 };
