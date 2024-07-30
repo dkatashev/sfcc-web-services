@@ -2,8 +2,8 @@
 
 /** @type {import('./BaseService')} */
 var BaseService = require('*/cartridge/scripts/webservice/BaseService');
-/** @type {import('../util/contentType')} */
-var contentType = require('*/cartridge/scripts/util/contentType');
+/** @type {import('../util/contentHeader')} */
+var contentHeader = require('*/cartridge/scripts/util/contentHeader');
 /** @type {import('../util/urlencoded')} */
 var urlencoded = require('*/cartridge/scripts/util/urlencoded');
 /** @type {import('../util/multipart')} */
@@ -22,13 +22,12 @@ var RestService = BaseService.extend({
    */
   createRequest: function (svc, params) {
     // Merge params with default values
-    var defaults = {
+    var args = Object.assign({
       method: 'GET',
       pathPatterns: {},
       queryParams: {},
       headers: {},
-    };
-    var args = Object.assign(defaults, params);
+    }, params);
 
     // Extract credential and URL
     var credential = this._getServiceCredential(svc, args);
@@ -131,7 +130,11 @@ var RestService = BaseService.extend({
    * @returns {string|dw.net.HTTPRequestPart[]} The formatted request body.
    */
   _createRequestBody: function (svc, dataType, data) {
-    switch (dataType) {
+    var bodyType = dataType || 'json';
+
+    switch (bodyType) {
+      case 'json':
+        return this._createJsonBody(svc, data);
       case 'form':
         return this._createFormBody(svc, data);
       case 'xml':
@@ -141,7 +144,7 @@ var RestService = BaseService.extend({
       case 'mixed':
         return this._createMixedBody(svc, data);
       default:
-        return this._createJsonBody(svc, data);
+        return data;
     }
   },
 
@@ -219,7 +222,7 @@ var RestService = BaseService.extend({
    * @returns {string} The formatted multipart body.
    */
   _createMixedBody: function (svc, data) {
-    var contentTypeHeader = contentType.format({
+    var contentTypeHeader = contentHeader.format({
       type: 'multipart/mixed',
       params: {
         boundary: data.boundary
@@ -240,7 +243,7 @@ var RestService = BaseService.extend({
    */
   parseResponse: function (svc, response) {
     var contentTypeHeader = response.getResponseHeader('Content-Type') || '';
-    var contentTypeObject = contentType.parse(contentTypeHeader);
+    var contentTypeObject = contentHeader.parse(contentTypeHeader);
 
     return this._parseResponseBody(contentTypeObject, response);
   },
@@ -248,7 +251,7 @@ var RestService = BaseService.extend({
   /**
    * Parses the HTTP response body for the REST service.
    *
-   * @param {ContentType} contentTypeObject - The content type object.
+   * @param {ContentHeader} contentTypeObject - The content type object.
    * @param {dw.net.HTTPClient} response - The HTTP response.
    * @returns {string|Object} The parsed response content.
    */
@@ -261,8 +264,10 @@ var RestService = BaseService.extend({
         return new XML(response.text);
       case 'application/x-www-form-urlencoded':
         return urlencoded.parse(response.text);
+      case 'multipart/form-data':
+        return this._parseResponseMultipart(contentTypeObject.params.boundary, response.bytes);
       case 'multipart/mixed':
-        return this._parseResponseMultipart(contentTypeObject.params.boundary, response.text);
+        return this._parseResponseMixed(contentTypeObject.params.boundary, response.bytes);
       case 'application/octet-stream':
         return response.bytes;
       default:
@@ -271,31 +276,62 @@ var RestService = BaseService.extend({
   },
 
   /**
-   * Parses the HTTP response multipart body for the REST service.
+   * Parses the HTTP response multipart/form-data body for the REST service.
    *
    * @param {string} boundary - The multipart boundary.
-   * @param {string} responseText - The HTTP response body text.
+   * @param {dw.util.Bytes} responseBytes - The HTTP response body text.
    * @returns {MultipartChunk[]} The parsed multipart chunks.
    */
-  _parseResponseMultipart: function (boundary, responseText) {
-    var Bytes = require('dw/util/Bytes');
+  _parseResponseMultipart: function (boundary, responseBytes) {
+    var self = this;
 
-    return multipart.parse(boundary, responseText).map(function (part) {
-      var partContentTypeHeader = part.headers['content-type'] || 'text/plain';
-      var partContentTypeObject = contentType.parse(partContentTypeHeader);
+    return multipart.parse(boundary, responseBytes).map(function (part) {
+      var typeHeader = part.headers['content-type'] || 'text/plain';
+      var typeObject = contentHeader.parse(typeHeader);
+      var dispositionHeader = part.headers['content-disposition'] || 'form-data';
+      var dispositionObject = contentHeader.parse(dispositionHeader);
+      var charset = typeObject.params.charset || 'UTF-8';
 
-      part.body = this._parseResponseBody(partContentTypeObject, {
-        text: part.body,
-        bytes: new Bytes(part.body)
+      part.body = {
+        name: dispositionObject.params.name,
+        filename: dispositionObject.params.filename,
+        data: self._parseResponseBody(typeObject, {
+          bytes: part.body,
+          text: part.body.toString(charset),
+        })
+      };
+
+      return part;
+    });
+  },
+
+  /**
+   * Parses the HTTP response multipart/mixed body for the REST service.
+   *
+   * @param {string} boundary - The multipart boundary.
+   * @param {string} responseBytes - The HTTP response body text.
+   * @returns {MultipartChunk[]} The parsed multipart chunks.
+   */
+  _parseResponseMixed: function (boundary, responseBytes) {
+    var self = this;
+
+    return multipart.parse(boundary, responseBytes).map(function (part) {
+      var contentTypeHeader = part.headers['content-type'] || 'text/plain';
+      var contentTypeObject = contentHeader.parse(contentTypeHeader);
+      var charset = contentTypeObject.params.charset || 'UTF-8';
+
+      part.body = self._parseResponseBody(contentTypeObject, {
+        bytes: part.body,
+        text: part.body.toString(charset),
       });
 
       return part;
-    }, this);
-  }
+    });
+  },
 });
 
 /**
- * @typedef {import('../util/contentType').ContentType} ContentType
+ * @typedef {import('../util/contentHeader').ContentHeader} ContentHeader
  */
 
 /**

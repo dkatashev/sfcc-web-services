@@ -1,5 +1,9 @@
 'use strict';
 
+var Bytes = require('dw/util/Bytes');
+/** @type {import('../util/ByteStream')} */
+var ByteStream = require('*/cartridge/scripts/util/ByteStream');
+/** @type {import('../util/headers')} */
 var headers = require('*/cartridge/scripts/util/headers');
 
 /**
@@ -10,24 +14,48 @@ module.exports = {
    * Parses a multipart body into an array of parts.
    *
    * @param {string} boundary - The boundary string.
-   * @param {string} body - The raw multipart body.
+   * @param {dw.util.Bytes} body - The raw multipart body.
    * @returns {Array.<MultipartChunk>} The parsed parts.
    */
   parse: function (boundary, body) {
-    var delimiter = '--' + boundary;
-    var parts = body.split(delimiter).slice(1, -1); // Ignore preamble and epilogue
     var crlf = '\r\n';
+    var crlfBytes = new Bytes(crlf);
+    var emptyLineBytes = new Bytes(crlf + crlf);
+    var delimiterBytes = new Bytes(crlf + '--' + boundary);
+    var byteStream = new ByteStream(body);
+    var HN = ByteStream.charCode.HN;
+    var parts = [];
 
-    return parts.map(function (part) {
-      var partDetails = part.split(/\r?\n\r?\n/); // Handle CRLF or LF
-      var rawHeaders = partDetails[0].trim();
-      var rawBody = partDetails.slice(1).join(crlf + crlf); // Rejoin body parts with CRLF
+    // Ignore preamble
+    if (!byteStream.readUntil(delimiterBytes)) {
+      throw new TypeError('Invalid format: Missing multipart delimiter.');
+    }
 
-      return {
-        headers: headers.parse(rawHeaders),
+    // Read stream
+    while (!byteStream.eos()) {
+      // Next chars are `--` mean we reach end delimiter
+      if (byteStream.peek() === HN && byteStream.peek(1) === HN) {
+        // Skip to the end of stream
+        byteStream.move(byteStream.length - byteStream.position);
+        break;
+      }
+
+      // Ignore spaces and CRLF after delimiter
+      byteStream.readUntil(crlfBytes);
+
+      // Read headers
+      var rawHeaders = byteStream.readUntil(emptyLineBytes);
+
+      // Read body
+      var rawBody = byteStream.readUntil(delimiterBytes);
+
+      parts.push({
+        headers: headers.parse(rawHeaders.toString()),
         body: rawBody
-      };
-    }, this);
+      });
+    }
+
+    return parts;
   },
 
   /**
@@ -38,19 +66,19 @@ module.exports = {
    * @returns {string} The multipart body string.
    */
   format: function (boundary, parts) {
-    var delimiter = '--' + boundary;
     var crlf = '\r\n';
+    var delimiter = crlf + '--' + boundary;
     var body = parts.map(function (part) {
       return headers.format(part.headers) + crlf + crlf + part.body;
-    }).join(crlf + delimiter + crlf);
+    }).join(delimiter + crlf);
 
     return delimiter + crlf + body + crlf + delimiter + '--';
-  }
+  },
 };
 
 /**
  * Represents multipart chunk.
  * @typedef {Object} MultipartChunk
  * @property {Object.<string,string>} headers - The HTTP headers.
- * @property {string} body - The HTTP body.
+ * @property {dw.util.Bytes} body - The HTTP body.
  */

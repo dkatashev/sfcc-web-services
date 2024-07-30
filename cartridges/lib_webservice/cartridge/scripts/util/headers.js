@@ -36,5 +36,5 @@ module.exports = {
     return Object.keys(headers).map(function (name) {
       return name + ': ' + headers[name];
     }).join('\r\n');
-  }
+  },
 };
