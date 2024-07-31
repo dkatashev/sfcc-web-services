@@ -27,7 +27,7 @@ module.exports = {
     var parts = [];
 
     // Ignore preamble
-    if (!byteStream.readUntil(delimiterBytes)) {
+    if (!byteStream.readUntil(new Bytes('--' + boundary))) {
       throw new TypeError('Invalid format: Missing multipart delimiter.');
     }
 

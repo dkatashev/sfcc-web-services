@@ -65,13 +65,13 @@ ByteStream.prototype.move = function (offset) {
     throw new TypeError('Offset must be a number.');
   }
 
-  var position = this.position + offset;
+  var newPosition = this.position + offset;
 
-  if (position < 0 || position >= this.length) {
+  if (newPosition < 0 || newPosition > this.length) {
     throw new RangeError('Target index is out of bounds.');
   }
 
-  this.position = position;
+  this.position = newPosition;
 };
 
 /**
@@ -94,33 +94,24 @@ ByteStream.prototype.peek = function (offset) {
  * @returns {dw.util.Bytes} - The sliced bytes.
  */
 ByteStream.prototype.slice = function (start, end) {
-  // Set default values
-  var index = (typeof start === 'number') ? start : 0;
-  var to = (typeof end === 'number') ? end : this.length;
+  // If start or end is negative, adjust it based on the length
+  var from = start < 0 ? this.length + start : start;
+  var to = end < 0 ? this.length + end : end;
 
-  // Adjust negative values
-  index = index < 0 ? this.length + index : index;
-  to = to < 0 ? this.length + to : to;
+  // Ensure start and end are within the bounds
+  from = Math.max(0, from);
+  to = Math.min(this.length, to);
 
-  // Ensure valid range
-  index = Math.max(start, 0);
-  to = Math.min(end, this.length);
-
-  // Ensure `to` is not before `index`
-  if (to < index) {
-    to = index;
-  }
-
-  // When `index` is beyond the `to` of the stream
-  if (index >= this.length) {
-    // Empty bytes
+  // If the end is before the start after adjustment, return empty Bytes
+  if (to < from) {
     return this.source.bytesAt(0, 0);
   }
 
   // Calculate length
-  var length = to - index;
+  var length = to - from;
 
-  return this.source.bytesAt(index, length);
+  // Create the slice from the adjusted indices
+  return this.source.bytesAt(from, length);
 };
 
 /**
@@ -130,7 +121,7 @@ ByteStream.prototype.slice = function (start, end) {
  * @throws {TypeError} - Throws an error if n is not a non-negative number.
  */
 ByteStream.prototype.readN = function (n) {
-  if (n < 0) {
+  if (typeof n !== 'number' || n < 0) {
     throw new TypeError('Number of bytes to read must be a non-negative number.');
   }
 

@@ -6,7 +6,7 @@
 module.exports = {
   MIME_TYPE_RE: /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/,
   DISPOSITION_TYPE_RE: /^[!#$%&'*+.^\w|~-]+$/,
-  PARAMETER_RE: /; *([!#$%&'*+.^\w`|~-]+)=("(?:[\x0b\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x0b\x20-\xff])*"|[!#$%&'*+.^\w`|~-]+) */g,
+  PARAMETER_RE: / *([!#$%&'*+.^\w`|~-]+)=("(?:[\x0b\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x0b\x20-\xff])*"|[!#$%&'*+.^\w`|~-]+) */,
 
   /**
    * Parses a header string into an object with type and parameters.
@@ -23,17 +23,15 @@ module.exports = {
     var parts = header.split(';').map(function (part) {
       return part.trim();
     });
-    var type = parts[0];
-    var params = parts.slice(1);
+    var type = parts.shift();
     var typeRegex = headerType === 'disposition' ? this.DISPOSITION_TYPE_RE : this.MIME_TYPE_RE;
 
     if (typeRegex.test(type)) {
       result.type = type;
     }
 
-    this.PARAMETER_RE.lastIndex = 0;
-    params.forEach(function (param) {
-      var match = this.PARAMETER_RE.exec(';' + param);
+    parts.forEach(function (param) {
+      var match = this.PARAMETER_RE.exec(param);
 
       if (match) {
         var key = match[1];
