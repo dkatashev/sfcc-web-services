@@ -21,9 +21,9 @@ function ByteStream(source) {
  * Character codes for common control characters.
  */
 ByteStream.charCode = {
-  CR: 0x0D, // Carriage return '\r'
-  LF: 0x0A, // Line feed '\n'
-  HN: 0x2D, // Hyphen '-'
+  CR: 13, // Carriage return '\r'
+  LF: 10, // Line feed '\n'
+  HN: 45, // Hyphen '-'
 };
 
 /**
