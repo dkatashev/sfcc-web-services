@@ -61,7 +61,7 @@ var RestAuthService = RestService.extend({
       var result = self.authorize();
 
       if (!result.ok) {
-        throw result;
+        throw result.errorMessage;
       }
 
       return {

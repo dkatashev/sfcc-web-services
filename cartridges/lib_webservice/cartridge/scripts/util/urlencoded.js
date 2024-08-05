@@ -14,11 +14,14 @@ module.exports = {
    */
   parse: function (urlEncoded) {
     return urlEncoded.split('&').reduce(function (state, next) {
-      var pairs = next.split('=');
-      var key = Encoding.fromURI(pairs[0]);
-      var value = Encoding.fromURI(pairs[1]);
+      if (next) {
+        var pairs = next.split('=');
+        var key = Encoding.fromURI(pairs[0]);
+        var value = Encoding.fromURI(pairs[1]);
 
-      state[key] = value;
+        state[key] = value;
+      }
+
       return state;
     }, {});
   },

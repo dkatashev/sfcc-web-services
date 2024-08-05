@@ -28,7 +28,7 @@ var SFTPService = BaseService.extend({
 
     client.connect(host, credential.user, credential.password);
 
-    if (profile.timeoutMillis) {
+    if (typeof profile.timeoutMillis === 'number') {
       client.setTimeout(profile.timeoutMillis);
     }
 

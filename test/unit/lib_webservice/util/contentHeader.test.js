@@ -1,60 +1,65 @@
 'use strict';
 
-var chai = require('chai');
-var expect = chai.expect;
+const chai = require('chai');
+const expect = chai.expect;
+const mocks = require('../../../mockPathMap');
 
-var contentHeader = require('../../../../cartridges/lib_webservice/cartridge/scripts/util/contentHeader');
+const contentHeader = mocks['*/cartridge/scripts/util/contentHeader'];
 
-describe('scripts/util/contentHeader', function () {
-  describe('#parse()', function () {
-    it('should correctly parse Content-Type header', function () {
-      var header = 'text/plain; charset=utf-8; format=flowed';
-      var result = contentHeader.parse(header, 'type');
+describe('scripts/util/contentHeader', () => {
+  describe('parse()', () => {
+    it('should correctly parse Content-Type header', () => {
+      const header = 'text/plain; charset=utf-8; format=flowed';
+      const result = contentHeader.parse(header, 'type');
+
       expect(result.type).to.equal('text/plain');
       expect(result.params.charset).to.equal('utf-8');
       expect(result.params.format).to.equal('flowed');
     });
 
-    it('should correctly parse Content-Disposition header', function () {
-      var header = 'attachment; filename="file.txt"';
-      var result = contentHeader.parse(header, 'disposition');
+    it('should correctly parse Content-Disposition header', () => {
+      const header = 'attachment; filename="file.txt"';
+      const result = contentHeader.parse(header, 'disposition');
+
       expect(result.type).to.equal('attachment');
       expect(result.params.filename).to.equal('file.txt');
     });
 
-    it('should ignore parameters without a value', function () {
-      var header = 'text/plain; charset';
-      var result = contentHeader.parse(header);
+    it('should ignore parameters without a value', () => {
+      const header = 'text/plain; charset';
+      const result = contentHeader.parse(header);
+
       expect(result.type).to.equal('text/plain');
       expect(result.params.charset).to.be.undefined;
     });
 
-    it('should ignore incorrect Content-Type MIME', function () {
-      var header = 'text';
-      var result = contentHeader.parse(header);
+    it('should ignore incorrect Content-Type MIME', () => {
+      const header = 'text';
+      const result = contentHeader.parse(header);
+
       expect(result.type).to.equal('');
     });
   });
 
-  describe('#format()', function () {
-    it('should format a content header from an object', function () {
-      var contentHeaderObject = {
+  describe('format()', () => {
+    it('should format a content header from an object', () => {
+      const headerString = contentHeader.format({
         type: 'text/plain',
         params: {
           charset: 'utf-8',
-          format: 'flowed'
-        }
-      };
-      var headerString = contentHeader.format(contentHeaderObject);
+          format: 'flowed',
+        },
+      });
+
       expect(headerString).to.equal('text/plain; charset=utf-8; format=flowed');
     });
 
-    it('should handle headers without parameters', function () {
-      var contentHeaderObject = {
+    it('should handle headers without parameters', () => {
+      const headerString = contentHeader.format({
         type: 'image/jpeg',
-        params: {}
-      };
-      var headerString = contentHeader.format(contentHeaderObject);
+        params: {},
+      });
+
       expect(headerString).to.equal('image/jpeg');
     });
   });

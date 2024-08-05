@@ -94,7 +94,7 @@ var RestService = BaseService.extend({
     }
 
     // Enables caching for GET requests.
-    if (args.ttl) {
+    if (typeof args.ttl === 'number') {
       svc.setCachingTTL(args.ttl);
     }
 

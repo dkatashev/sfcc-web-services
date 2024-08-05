@@ -51,7 +51,7 @@ var BaseService = {
    */
   fetch: function (aliasOrArgs, args) {
     var alias = args ? aliasOrArgs : 'default';
-    var params = args || aliasOrArgs;
+    var params = args || aliasOrArgs || {};
     var service;
     var result;
 
@@ -87,13 +87,13 @@ var BaseService = {
    * @protected
    * @param {string} alias - The service name for which the configuration is retrieved.
    * @returns {string} The configuration for the specified service name.
-   * @throws {TypeError} Throws an error if the alias is not defined in SERVICE_CONFIGURATIONS.
+   * @throws {Error} Throws an error if the alias is not defined in SERVICE_CONFIGURATIONS.
    */
   _getServiceID: function (alias) {
     var serviceId = this.SERVICE_CONFIGURATIONS[alias];
 
     if (!serviceId) {
-      throw new TypeError('Service: Please define service action for ' + alias + ' !');
+      throw new Error('Service: Please define service action for ' + alias + '!');
     }
 
     return serviceId;
@@ -113,6 +113,9 @@ var BaseService = {
     /** Prepare service callback common methods */
     this.SERVICE_CALLBACK_METHODS.forEach(function (method) {
       if (typeof self[method] === 'function') {
+        if (method === 'execute') {
+          configCallbacks.executeOverride = true;
+        }
         configCallbacks[method] = self[method].bind(self);
       }
     });

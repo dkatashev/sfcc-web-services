@@ -1,5 +1,6 @@
 {
   "env": {
+    "es6": true,
     "mocha": true
   },
   "rules": {
@@ -8,6 +9,7 @@
     "quote-props": "off",
     "no-new": "off",
     "valid-jsdoc": "off",
-    "no-unused-expressions": "off"
+    "no-unused-expressions": "off",
+    "no-restricted-syntax"
   }
 }
