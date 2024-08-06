@@ -1,13 +1,14 @@
 'use strict';
 
-const ServiceConfig = require('./ServiceConfig');
 const Result = require('./Result');
+const ServiceConfig = require('./ServiceConfig');
 
 class Service {
-  constructor(serviceId, callbacks) {
+  constructor(serviceId, callbacks, serviceType) {
     this.serviceId = serviceId;
     this.callbacks = callbacks;
-    this.configuration = new ServiceConfig();
+
+    this.configuration = new ServiceConfig(serviceType);
     this.credentialID = '';
     this.mock = false;
     this.requestData = {};
@@ -17,58 +18,62 @@ class Service {
   }
 
   call(...args) {
-    if (this.mock && typeof this.callbacks.mockFull === 'function') {
-      return this.configObj.mockFull(this, args);
-    }
+    const {
+      mockFull,
+      initServiceClient,
+      createRequest,
+      getRequestLogMessage,
+      executeOverride,
+      execute,
+      parseResponse,
+      getResponseLogMessage,
+      filterLogMessage,
+    } = this.callbacks;
 
-    if (typeof this.callbacks.initServiceClient === 'function') {
-      this.client = this.callbacks.initServiceClient(this);
-    }
-
-    if (typeof this.callbacks.createRequest === 'function') {
-      this.requestData = this.callbacks.createRequest(this, ...args);
-
-      if (typeof this.callbacks.getRequestLogMessage === 'function') {
-        this.callbacks.getRequestLogMessage(this.requestData);
+    try {
+      if (this.mock && typeof mockFull === 'function') {
+        return mockFull(this, args);
       }
-    }
 
-    if (this.callbacks.executeOverride && typeof this.callbacks.execute === 'function') {
-      this.callbacks.execute(this, this.requestData);
-    }
-
-    if (typeof this.callbacks.parseResponse === 'function') {
-      this.response = this.callbacks.parseResponse(this, this.requestData);
-
-      if (typeof this.callbacks.getResponseLogMessage === 'function') {
-        this.callbacks.getResponseLogMessage(this.response);
+      if (typeof initServiceClient === 'function') {
+        this.client = initServiceClient(this);
       }
+
+      if (typeof createRequest === 'function') {
+        this.requestData = createRequest(this, ...args);
+
+        if (typeof getRequestLogMessage === 'function') {
+          getRequestLogMessage(this.requestData);
+        }
+      }
+
+      if (executeOverride && typeof execute === 'function') {
+        execute(this, this.requestData);
+      }
+
+      if (typeof parseResponse === 'function') {
+        this.response = parseResponse(this, this.requestData);
+
+        if (typeof getResponseLogMessage === 'function') {
+          getResponseLogMessage(this.response);
+        }
+      }
+
+      if (typeof filterLogMessage === 'function') {
+        filterLogMessage(
+          JSON.stringify({
+            request: this.requestData,
+            response: this.response
+          })
+        );
+      }
+
+      return new Result(Result.OK, this.response);
+    } catch (error) {
+      const errorResult = new Result(Result.ERROR, this.response);
+      errorResult.errorMessage = error.message;
+      return errorResult;
     }
-
-    if (typeof this.callbacks.filterLogMessage === 'function') {
-      this.callbacks.filterLogMessage(JSON.stringify({
-        request: this.requestData,
-        response: this.response
-      }));
-    }
-
-    let result;
-
-    switch (args[0].__unitTestStatus) {
-      case 'OK':
-        result = Result.unitTest.OK;
-        result.object = this.response;
-        break;
-      case 'ERROR':
-        result = Result.unitTest.ERROR;
-        break;
-      default:
-        result = new Result();
-        result.object = this.response;
-        break;
-    }
-
-    return result;
   }
 
   getConfiguration() {

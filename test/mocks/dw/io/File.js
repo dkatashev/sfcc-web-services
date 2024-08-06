@@ -1,45 +1,33 @@
 'use strict';
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const crypto = require('crypto');
+const { posix: path } = require('path');
+const Bytes = require('../util/Bytes');
 
 class File {
-  constructor(absPath) {
-    if (typeof absPath === 'string') {
-      this.fullPath = path.join(os.tmpdir(), path.normalize(absPath));
-    } else if (absPath instanceof File) {
-      this.fullPath = path.join(os.tmpdir(), absPath.fullPath, absPath.path);
+  constructor(rootDir, relPath) {
+    if (typeof rootDir === 'string') {
+      this.fullPath = path.normalize(rootDir);
+    } else if (rootDir instanceof File && typeof relPath === 'string') {
+      this.fullPath = path.join(rootDir.fullPath, relPath);
     } else {
       throw new Error('Invalid constructor parameters');
     }
 
-    this.name = path.basename(this.fullPath);
-    this.path = path.relative('/', this.fullPath);
     this.rootDirectoryType = this._getRootDirectoryTypeFromPath(this.fullPath);
-    this.directory = fs.statSync(this.fullPath).isDirectory();
-    this.file = fs.statSync(this.fullPath).isFile();
-  }
+    this.name = path.basename(this.fullPath);
+    this.path = this.fullPath.replace(`/${this.rootDirectoryType}`, '');
+    this.directory = this.fullPath.endsWith(File.SEPARATOR);
+    this.file = !this.directory;
+    this.lastModifiedDate = new Date();
+    this.fileContent = '';
+    this.childFiles = [];
 
-  copyTo(destFile) {
-    if (this.isDirectory()) {
-      throw new Error('Cannot copy directories');
-    }
-    fs.copyFileSync(this.fullPath, destFile.fullPath);
-    return new File(destFile.fullPath);
-  }
-
-  createNewFile() {
-    if (this.exists()) {
-      return false;
-    }
-    fs.writeFileSync(this.fullPath, '');
-    return true;
-  }
-
-  exists() {
-    return fs.existsSync(this.fullPath);
+    Object.defineProperty(this, 'fileBytes', {
+      enumerable: true,
+      get() {
+        return new Bytes(this.fileContent);
+      }
+    });
   }
 
   getFullPath() {
@@ -54,24 +42,8 @@ class File {
     return this.path;
   }
 
-  static getRootDirectory(rootDir, ...args) {
-    let rootPath = rootDir;
-    if (args.length > 0) {
-      rootPath = path.join(rootDir, ...args);
-    }
-    return new File(rootPath);
-  }
-
   getRootDirectoryType() {
     return this.rootDirectoryType;
-  }
-
-  gunzip(destDir) {
-    // Implement gunzip logic here
-  }
-
-  gzip(destFile) {
-    // Implement gzip logic here
   }
 
   isDirectory() {
@@ -83,77 +55,133 @@ class File {
   }
 
   lastModified() {
-    return fs.statSync(this.fullPath).mtimeMs;
+    return this.lastModifiedDate.valueOf();
   }
 
   length() {
-    return fs.statSync(this.fullPath).size;
+    return this.fileBytes.length;
   }
 
-  list() {
-    if (!this.isDirectory()) {
-      return null;
-    }
-    return fs.readdirSync(this.fullPath);
-  }
-
-  listFiles(filter = null) {
-    if (!this.isDirectory()) {
-      return null;
-    }
-    const files = fs.readdirSync(this.fullPath).map(file => new File(path.join(this.fullPath, file)));
-    if (filter) {
-      return files.filter(filter);
-    }
-    return files;
-  }
-
-  md5() {
-    const data = fs.readFileSync(this.fullPath);
-    return crypto.createHash('md5').update(data).digest('hex');
-  }
-
-  mkdir() {
+  createNewFile() {
     if (this.exists()) {
       return false;
     }
-    fs.mkdirSync(this.fullPath);
+    this.file = true;
+    this.directory = false;
+    this.lastModifiedDate = new Date();
     return true;
   }
 
-  mkdirs() {
-    if (this.exists()) {
-      return false;
+  exists() {
+    return this.file || this.directory;
+  }
+
+  mkdir() {
+    if (!this.exists()) {
+      this.directory = true;
+      this.file = false;
+      this.lastModifiedDate = new Date();
+      return true;
     }
-    fs.mkdirSync(this.fullPath, { recursive: true });
+    return false;
+  }
+
+  mkdirs() {
+    // Simulate the creation of parent directories if needed
+    const parts = this.fullPath.split(path.sep);
+    let currentPath = '';
+
+    parts.forEach((part) => {
+      currentPath += part + path.sep;
+      if (!currentPath.endsWith(File.SEPARATOR)) {
+        currentPath = path.normalize(currentPath + File.SEPARATOR);
+      }
+    });
+
+    this.directory = true;
+    this.file = false;
+    this.lastModifiedDate = new Date();
     return true;
   }
 
   remove() {
-    if (this.isDirectory()) {
-      fs.rmdirSync(this.fullPath);
-    } else {
-      fs.unlinkSync(this.fullPath);
+    if (this.exists()) {
+      this.file = false;
+      this.directory = false;
+      return true;
     }
-    return !this.exists();
+    return false;
   }
 
-  renameTo(destFile) {
-    fs.renameSync(this.fullPath, destFile.fullPath);
-    return true;
+  renameTo(dest) {
+    if (dest instanceof File) {
+      dest.fileContent = this.fileContent;
+      dest.lastModifiedDate = new Date();
+      this.remove();
+      return true;
+    }
+    return false;
   }
 
-  unzip(destDir) {
-    // Implement unzip logic here
+  list() {
+    return this.childFiles.map((file) => file.getName());
   }
 
-  zip(destFile) {
-    // Implement zip logic here
+  listFiles() {
+    return this.childFiles;
   }
 
-  _getRootDirectoryTypeFromPath(filePath) {
-    const segments = filePath.split(path.sep);
-    return segments.length > 1 ? segments[1].toUpperCase() : '';
+  copyTo(dest) {
+    if (dest instanceof File && !dest.exists()) {
+      dest.fileContent = this.fileContent;
+      dest.lastModifiedDate = new Date();
+      return dest;
+    }
+    return null;
+  }
+
+  md5() {
+    // Simple MD5 hash simulation
+    return require('crypto').createHash('md5').update(this.fileContent).digest('hex');
+  }
+
+  static getRootDirectory(rootDir, ...args) {
+    const filePath = path.join(rootDir, ...args);
+    return new File(filePath);
+  }
+
+  _getRootDirectoryTypeFromPath(fullPath) {
+    const segments = fullPath.split(path.sep);
+    const key = segments.length > 1 ? segments[1].toUpperCase() : '';
+    return File[key] || '';
+  }
+
+  unzip(root) {
+    if (this.file) {
+      // Simulate unzipping process
+      this.childFiles.push(new File(root, 'unzipped_file.txt'));
+    }
+  }
+
+  zip(outputZipFile) {
+    if (this.file || this.directory) {
+      // Simulate zipping process
+      outputZipFile.fileContent = 'zipped content';
+    }
+  }
+
+  gunzip(root) {
+    if (this.file) {
+      // Simulate gunzipping process
+      this.childFiles.push(new File(root, 'gunzipped_file.txt'));
+    }
+  }
+
+  gzip(outputZipFile) {
+    if (this.file) {
+      // Simulate gzipping process
+      outputZipFile.fileContent = 'gzipped content';
+    }
   }
 }
 

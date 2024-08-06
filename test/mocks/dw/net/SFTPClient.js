@@ -1,38 +1,28 @@
 'use strict';
 
-const SFTPFileInfo = require('./SFTPFileInfo');
-
-/* eslint-disable class-methods-use-this */
+const sinon = require('sinon');
 
 class SFTPClient {
   constructor() {
-    this.connected = true;
+    this.connected = false;
     this.errorMessage = '';
     this.timeout = 0;
-  }
+    this.keyRef = null;
 
-  addKnownHostKey() { }
-
-  cd() {
-    return true;
-  }
-
-  connect() {
-    return true;
-  }
-
-  del() {
-    return true;
-  }
-
-  disconnect() { }
-
-  get() {
-    return '';
-  }
-
-  getBinary() {
-    return true;
+    this.addKnownHostKey = sinon.stub();
+    this.cd = sinon.stub();
+    this.connect = sinon.stub();
+    this.del = sinon.stub();
+    this.disconnect = sinon.stub();
+    this.get = sinon.stub();
+    this.getBinary = sinon.stub();
+    this.getFileInfo = sinon.stub();
+    this.list = sinon.stub();
+    this.mkdir = sinon.stub();
+    this.put = sinon.stub();
+    this.putBinary = sinon.stub();
+    this.removeDirectory = sinon.stub();
+    this.rename = sinon.stub();
   }
 
   getConnected() {
@@ -43,43 +33,20 @@ class SFTPClient {
     return this.errorMessage;
   }
 
-  getFileInfo() {
-    return new SFTPFileInfo('name', 0, false, new Date());
-  }
-
   getTimeout() {
     return this.timeout;
   }
 
-  list() {
-    return [];
+  setIdentity(keyRef) {
+    this.keyRef = keyRef;
   }
 
-  mkdir() {
-    return true;
-  }
-
-  put() {
-    return true;
-  }
-
-  putBinary() {
-    return true;
-  }
-
-  removeDirectory() {
-    return true;
-  }
-
-  rename() {
-    return true;
-  }
-
-  setIdentity() { }
-
-  setTimeout(timeoutMillis) {
-    this.timeout = timeoutMillis;
+  setTimeout(timeout) {
+    this.timeout = timeout;
   }
 }
+
+SFTPClient.MAX_GET_FILE_SIZE = 209715200;
+SFTPClient.MAX_GET_STRING_SIZE = 10485760;
 
 module.exports = SFTPClient;

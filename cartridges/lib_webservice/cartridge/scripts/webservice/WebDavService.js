@@ -81,6 +81,8 @@ var WebDavService = BaseService.extend({
       } finally {
         client.close();
       }
+
+      return result;
     }
 
     /**
@@ -92,9 +94,12 @@ var WebDavService = BaseService.extend({
       } finally {
         client.close();
       }
+
+      return result;
     }
 
-    return result;
+    client.close();
+    throw new Error('No valid operation or callback provided.');
   },
 
   /**

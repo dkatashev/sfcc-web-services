@@ -1,12 +1,12 @@
 'use strict';
 
+const sinon = require('sinon');
+
 class Port {
-  constructor() {
-    this.encoding = null;
-    this.endpointAddress = null;
-    this.password = null;
-    this.sessionMaintain = false;
-    this.username = null;
+  constructor(operations) {
+    operations.forEach((operation) => {
+      this[operation] = sinon.stub();
+    });
   }
 }
 

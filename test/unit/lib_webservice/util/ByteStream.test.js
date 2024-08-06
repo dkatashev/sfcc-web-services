@@ -1,11 +1,13 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
-const mocks = require('../../../mockPathMap');
+const { expect } = require('chai');
+const proxyquire = require('proxyquire').noCallThru();
 
+const mocks = require('../../../mocks');
 const MockBytes = mocks['dw/util/Bytes'];
-const ByteStream = mocks['*/cartridge/scripts/util/ByteStream'];
+const ByteStream = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/ByteStream', {
+  'dw/util/Bytes': MockBytes,
+});
 
 describe('scripts/util/ByteStream', () => {
   let source;
@@ -16,13 +18,7 @@ describe('scripts/util/ByteStream', () => {
     stream = new ByteStream(source);
   });
 
-  describe('constructor()', () => {
-    it('should throw TypeError if source is not an instance of Bytes', () => {
-      expect(() => new ByteStream('invalid')).to.throw(TypeError);
-    });
-  });
-
-  describe('static #equal()', () => {
+  describe('ByteStream.equal()', () => {
     it('should return true for equal byte arrays', () => {
       const bytesA = new MockBytes('hello');
       const bytesB = new MockBytes('hello');
@@ -45,16 +41,25 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('eos()', () => {
-    it('should handle eos correctly', () => {
+  describe('ByteStream()', () => {
+    it('should throw TypeError if source is not an instance of Bytes', () => {
+      expect(() => new ByteStream('invalid')).to.throw(TypeError);
+    });
+  });
+
+  describe('#eos()', () => {
+    it('should return true when at end of stream', () => {
       stream.position = source.length;
       expect(stream.eos()).to.be.true;
+    });
+
+    it('should return false when not at end of stream', () => {
       stream.position = 0;
       expect(stream.eos()).to.be.false;
     });
   });
 
-  describe('move()', () => {
+  describe('#move()', () => {
     it('should move the position correctly within bounds', () => {
       stream.move(5);
       expect(stream.position).to.equal(5);
@@ -70,7 +75,7 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('peek()', () => {
+  describe('#peek()', () => {
     it('should peek at the correct byte without changing position', () => {
       expect(stream.peek()).to.equal(source.byteAt(0));
       expect(stream.position).to.equal(0);
@@ -82,7 +87,7 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('slice()', () => {
+  describe('#slice()', () => {
     it('should slice the byte stream correctly', () => {
       const result = stream.slice(1, 3);
 
@@ -96,14 +101,14 @@ describe('scripts/util/ByteStream', () => {
       expect(result.length).to.equal(2);
     });
 
-    it('should handle end less then start correctly', () => {
+    it('should handle end less than start correctly', () => {
       const result = stream.slice(-1, -3);
 
       expect(result.length).to.equal(0);
     });
   });
 
-  describe('readN()', () => {
+  describe('#readN()', () => {
     it('should read the specified number of bytes and move the position', () => {
       const result = stream.readN(5);
 
@@ -121,12 +126,12 @@ describe('scripts/util/ByteStream', () => {
       expect(() => stream.readN(null)).to.throw(TypeError);
     });
 
-    it('should throw TypeError when n less then 0', () => {
+    it('should throw TypeError when n less than 0', () => {
       expect(() => stream.readN(-10)).to.throw(TypeError);
     });
   });
 
-  describe('read()', () => {
+  describe('#read()', () => {
     it('should read the next byte and advance the position', () => {
       const firstByte = stream.read();
 
@@ -140,7 +145,7 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('readLine()', () => {
+  describe('#readLine()', () => {
     it('should read a line terminated by LF', () => {
       const sourceLF = new MockBytes('hello\nworld\n!');
       const streamLF = new ByteStream(sourceLF);
@@ -176,7 +181,7 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('readUntil()', () => {
+  describe('#readUntil()', () => {
     it('should read until the specified byte sequence', () => {
       const sequence = new MockBytes('world');
       const result = stream.readUntil(sequence);

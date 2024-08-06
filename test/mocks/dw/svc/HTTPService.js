@@ -5,7 +5,8 @@ const HTTPClient = require('../net/HTTPClient');
 
 class HTTPService extends Service {
   constructor(serviceId, callbacks) {
-    super(serviceId, callbacks);
+    super(serviceId, callbacks, 'HTTP');
+
     this.authentication = 'BASIC';
     this.cachingTTL = 0;
     this.client = new HTTPClient();

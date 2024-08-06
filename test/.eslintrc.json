@@ -10,6 +10,6 @@
     "no-new": "off",
     "valid-jsdoc": "off",
     "no-unused-expressions": "off",
-    "no-restricted-syntax"
+    "class-methods-use-this": "off"
   }
 }

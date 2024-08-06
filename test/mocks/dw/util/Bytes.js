@@ -30,7 +30,7 @@ class Bytes {
   }
 
   reverse() {
-    var reversed = Buffer.from(this.bytes).reverse();
+    const reversed = Buffer.from(this.bytes).reverse();
     return new Bytes(reversed.toString());
   }
 

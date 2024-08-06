@@ -1,74 +1,69 @@
 'use strict';
 
+const sinon = require('sinon');
+
 class WSUtil {
-  static addSOAPHeader(port, xml, mustUnderstand, actor) {
+  static addSOAPHeader() {
     // Mock implementation
   }
 
-  static clearSOAPHeaders(port) {
+  static clearSOAPHeaders() {
     // Mock implementation
   }
 
-  static createHolder(element) {
-    // Mock implementation
-    return { value: element };
-  }
-
-  static getConnectionTimeout(port) {
-    // Mock implementation
-    return 10000; // Example timeout value
-  }
-
-  static getHTTPRequestHeader(port, key) {
-    // Mock implementation
-    return null;
-  }
-
-  static getProperty(key, port) {
-    // Mock implementation
-    return null;
-  }
-
-  static getRequestTimeout(port) {
-    // Mock implementation
-    return 10000; // Example timeout value
-  }
-
-  static getResponseProperty(key, port) {
-    // Mock implementation
-    return null;
-  }
-
-  static isAllowChunking(port) {
-    // Mock implementation
-    return true;
-  }
-
-  static setAllowChunking(port, allow) {
+  static createHolder() {
     // Mock implementation
   }
 
-  static setConnectionTimeout(timeoutInMilliseconds, port) {
+  static getConnectionTimeout() {
     // Mock implementation
   }
 
-  static setHTTPRequestHeader(port, key, value) {
+  static getHTTPRequestHeader() {
     // Mock implementation
   }
 
-  static setProperty(key, value, port) {
+  static getProperty() {
     // Mock implementation
   }
 
-  static setRequestTimeout(timeoutInMilliseconds, port) {
+  static getRequestTimeout() {
     // Mock implementation
   }
 
-  static setUserNamePassword(userName, password, port) {
+  static getResponseProperty() {
     // Mock implementation
   }
 
-  static setWSSecurityConfig(port, requestConfigMap, responseConfigMap) {
+  static isAllowChunking() {
+    // Mock implementation
+  }
+
+  static setAllowChunking() {
+    // Mock implementation
+  }
+
+  static setConnectionTimeout() {
+    // Mock implementation
+  }
+
+  static setHTTPRequestHeader() {
+    // Mock implementation
+  }
+
+  static setProperty() {
+    // Mock implementation
+  }
+
+  static setRequestTimeout() {
+    // Mock implementation
+  }
+
+  static setUserNamePassword() {
+    // Mock implementation
+  }
+
+  static setWSSecurityConfig() {
     // Mock implementation
   }
 }
@@ -103,5 +98,23 @@ WSUtil.WS_SIGNATURE_USER = 'signatureUser';
 WSUtil.WS_TIMESTAMP = 'Timestamp';
 WSUtil.WS_USER = 'user';
 WSUtil.WS_USERNAME_TOKEN = 'UsernameToken';
+
+// Stubbing methods with sinon
+sinon.stub(WSUtil, 'addSOAPHeader');
+sinon.stub(WSUtil, 'clearSOAPHeaders');
+sinon.stub(WSUtil, 'createHolder');
+sinon.stub(WSUtil, 'getConnectionTimeout');
+sinon.stub(WSUtil, 'getHTTPRequestHeader');
+sinon.stub(WSUtil, 'getProperty');
+sinon.stub(WSUtil, 'getRequestTimeout');
+sinon.stub(WSUtil, 'getResponseProperty');
+sinon.stub(WSUtil, 'isAllowChunking');
+sinon.stub(WSUtil, 'setAllowChunking');
+sinon.stub(WSUtil, 'setConnectionTimeout');
+sinon.stub(WSUtil, 'setHTTPRequestHeader');
+sinon.stub(WSUtil, 'setProperty');
+sinon.stub(WSUtil, 'setRequestTimeout');
+sinon.stub(WSUtil, 'setUserNamePassword');
+sinon.stub(WSUtil, 'setWSSecurityConfig');
 
 module.exports = WSUtil;

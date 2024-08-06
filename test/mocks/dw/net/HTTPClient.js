@@ -1,9 +1,8 @@
 'use strict';
 
-/* eslint-disable class-methods-use-this, no-unused-vars */
-
-const DwMap = require('../util/Map');
+const sinon = require('sinon');
 const Bytes = require('../util/Bytes');
+const HashMap = require('../util/HashMap');
 
 class HTTPClient {
   constructor() {
@@ -32,12 +31,19 @@ class HTTPClient {
     this.errorText = '';
     this.hostNameVerification = true;
     this.identity = null;
-    this.requestHeaders = new DwMap();
-    this.responseHeaders = new DwMap();
+    this.requestHeaders = new HashMap();
+    this.responseHeaders = new HashMap();
     this.statusCode = 200;
     this.statusMessage = 'OK';
     this.text = '';
     this.timeout = 0;
+
+    this.open = sinon.stub();
+    this.send = sinon.stub();
+    this.sendBytes = sinon.stub();
+    this.sendAndReceiveToFile = sinon.stub();
+    this.sendBytesAndReceiveToFile = sinon.stub();
+    this.sendMultiPart = sinon.stub();
   }
 
   enableCaching(ttl) {
@@ -99,22 +105,6 @@ class HTTPClient {
   getTimeout() {
     return this.timeout;
   }
-
-  open(method, url, user, password) { }
-
-  send() { }
-
-  sendAndReceiveToFile() {
-    return true;
-  }
-
-  sendBytes() { }
-
-  sendBytesAndReceiveToFile() {
-    return true;
-  }
-
-  sendMultiPart() { }
 
   setAllowRedirect(allowRedirect) {
     this.allowRedirect = allowRedirect;

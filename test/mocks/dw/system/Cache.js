@@ -1,7 +1,5 @@
 'use strict';
 
-/* eslint-disable class-methods-use-this */
-
 class Cache {
   constructor(store = {}) {
     Object.defineProperty(this, 'store', {

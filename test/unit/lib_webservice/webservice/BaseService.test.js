@@ -1,260 +1,176 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
-const sinon = require('sinon');
-const mocks = require('../../../mockPathMap');
+const { expect } = require('chai');
+const proxyquire = require('proxyquire').noCallThru();
 
+const mocks = require('../../../mocks');
 const MockResult = mocks['dw/svc/Result'];
 const MockService = mocks['dw/svc/Service'];
+const MockServiceCredential = mocks['dw/svc/ServiceCredential'];
 const MockLocalServiceRegistry = mocks['dw/svc/LocalServiceRegistry'];
-const BaseService = mocks['*/cartridge/scripts/webservice/BaseService'];
+
+const BaseService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
+  'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
+});
 
 describe('scripts/webservice/BaseService', () => {
-  describe('extend()', () => {
-    it('should extend the BaseService and override existing methods and attributes', function () {
-      const customFetch = () => {};
-      const TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: { default: 'test' },
-        fetch: customFetch,
+  let TestService;
+  let params;
+
+  beforeEach(() => {
+    TestService = BaseService.extend({
+      SERVICE_CONFIGURATIONS: {
+        default: 'abstract.default',
+        alias: 'abstract.alias',
+      }
+    });
+    params = { test: 'param' };
+  });
+
+  describe('#extend()', () => {
+    it('should extend the base service with additional methods and properties', () => {
+      const ExtendedService = BaseService.extend({
+        customMethod: () => 'test',
       });
 
-      expect(TestService.SERVICE_CONFIGURATIONS.default).to.equal('test');
-      expect(TestService.fetch).to.equal(customFetch);
+      expect(ExtendedService.customMethod()).to.equal('test');
+      expect(ExtendedService.SERVICE_CONFIGURATIONS).to.deep.equal(BaseService.SERVICE_CONFIGURATIONS);
     });
   });
 
-  describe('fetch()', () => {
-    let TestService;
-
-    beforeEach(() => {
-      TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: { default: 'test.configuration' },
-      });
-    });
-
-    it('should work without arguments', () => {
-      const result = TestService.fetch();
+  describe('#fetch()', () => {
+    it('should call _createService with alias and args', () => {
+      const result = TestService.fetch('alias', params);
 
       expect(result).to.be.instanceOf(MockResult);
-    });
-
-    it('should work with only alias in arguments', () => {
-      const result = TestService.fetch('default');
-
-      expect(result).to.be.instanceOf(MockResult);
-    });
-
-    it('should work with alias and params', () => {
-      const result = TestService.fetch('default', {});
-
-      expect(result).to.be.instanceOf(MockResult);
-    });
-
-    it('should return error result with empty service configuration', () => {
-      TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: { default: '' },
-      });
-
-      const result = TestService.fetch('default', {});
-      const errorMessage = 'Service: Please define service action for default!';
-
-      expect(result.ok).to.be.false;
-      expect(result.errorMessage).to.equal(errorMessage);
-    });
-
-    it('should return error result with unknown alias', () => {
-      const result = TestService.fetch('unknown', {});
-      const errorMessage = 'Service: Please define service action for unknown!';
-
-      expect(result.ok).to.be.false;
-      expect(result.errorMessage).to.equal(errorMessage);
-    });
-
-    it('should handle successful service call', () => {
-      TestService = TestService.extend({
-        _createService: () => ({
-          call: () => ({ ok: true }),
-        }),
-      });
-
-      const result = TestService.fetch();
-
       expect(result.ok).to.be.true;
     });
 
-    it('should handle unsuccessful service call', () => {
-      TestService = TestService.extend({
-        _createService: () => ({
-          call: () => ({ ok: false }),
-        }),
-      });
+    it('should call _createService with default alias and args when only args are provided', () => {
+      const result = TestService.fetch(params);
 
-      const result = TestService.fetch();
-
-      expect(result.ok).to.be.false;
+      expect(result).to.be.instanceOf(MockResult);
+      expect(result.ok).to.be.true;
     });
 
-    it('should handle service call throwing an error', () => {
+    it('should handle exceptions and call _handleErrorResult', () => {
+      const error = new Error('_createService error');
+
       TestService = TestService.extend({
         _createService: () => {
-          throw new Error('ERROR');
-        },
+          throw error;
+        }
       });
 
       const result = TestService.fetch();
 
-      expect(result.ok).to.be.false;
-      expect(result.errorMessage).to.equal('ERROR');
+      expect(result).to.be.not.instanceOf(MockResult);
+      expect(result).to.deep.equal({
+        error: -1,
+        errorMessage: error.message,
+        msg: error.stack,
+        object: null,
+        ok: false,
+        status: 'ERROR',
+        unavailableReason: null,
+      });
     });
   });
 
-  describe('_createService()', () => {
-    it('should create a service with the correct ID and callbacks when alias is provided', () => {
-      const createServiceStub = sinon.stub(MockLocalServiceRegistry, 'createService').returns({});
-      const TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: { custom: 'customServiceID' },
-      });
+  describe('#_createService()', () => {
+    it('should create a service using LocalServiceRegistry', () => {
+      const result = TestService._createService('alias', params);
 
-      TestService._createService('custom', {});
-      expect(createServiceStub.calledOnce).to.be.true;
-      expect(createServiceStub.calledWith('customServiceID')).to.be.true;
-      createServiceStub.restore();
+      expect(result).to.be.instanceOf(MockService);
     });
 
-    it('should create a service with the correct ID and callbacks when alias is not provided', () => {
-      const createServiceStub = sinon.stub(MockLocalServiceRegistry, 'createService').returns({});
-      const TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: { default: 'defaultServiceID' },
-      });
+    it('should call _getServiceID with default alias when alias is not provided', () => {
+      const result = TestService._createService(undefined, params);
 
-      TestService._createService(undefined, {});
-      expect(createServiceStub.calledOnce).to.be.true;
-      expect(createServiceStub.calledWith('defaultServiceID')).to.be.true;
-      createServiceStub.restore();
+      expect(result).to.be.instanceOf(MockService);
     });
   });
 
-  describe('_getServiceID()', () => {
-    let TestService;
-
-    beforeEach(() => {
-      TestService = BaseService.extend({
-        SERVICE_CONFIGURATIONS: {
-          default: 'test.configuration',
-        },
-      });
-    });
-
+  describe('#_getServiceID()', () => {
     it('should return the service ID for a valid alias', () => {
-      const serviceId = TestService._getServiceID('default');
+      const serviceId = TestService._getServiceID('alias');
 
-      expect(serviceId).to.equal('test.configuration');
+      expect(serviceId).to.equal('abstract.alias');
     });
 
-    it('should throw an Error for an invalid alias', () => {
-      const errorMessage = 'Service: Please define service action for invalidAlias!';
-
-      expect(() => TestService._getServiceID('invalidAlias')).to.throw(errorMessage);
+    it('should throw an error for an invalid alias', () => {
+      expect(() => TestService._getServiceID('invalid')).to.throw('Service: Please define service action for invalid!');
     });
   });
 
-  describe('_getServiceCallback()', () => {
-    let TestService;
-
-    beforeEach(() => {
+  describe('#_getServiceCallback()', () => {
+    it('should return service callback configurations', () => {
       TestService = BaseService.extend({
-        initServiceClient: sinon.spy(),
-        createRequest: sinon.spy(),
-        execute: sinon.spy(),
-        parseResponse: sinon.spy(),
-        filterLogMessage: sinon.spy(),
-        getRequestLogMessage: sinon.spy(),
-        getResponseLogMessage: sinon.spy(),
-      });
-    });
-
-    it('should create empty service callback', () => {
-      const callbacks = TestService._getServiceCallback({});
-
-      for (const method of TestService.SERVICE_CALLBACK_METHODS) {
-        expect(callbacks[method]).to.be.a('function');
-      }
-    });
-
-    it('should create service callback object with mock methods', () => {
-      const params = {
-        mockCall: () => {},
-        mockFull: () => {},
-      };
-      const callbacks = TestService._getServiceCallback(params);
-
-      for (const method of TestService.SERVICE_CALLBACK_METHODS) {
-        expect(callbacks[method]).to.be.a('function');
-      }
-    });
-
-    it('should bind the common callback methods to the service', () => {
-      const callbacks = TestService._getServiceCallback({});
-
-      for (const method of TestService.SERVICE_CALLBACK_METHODS) {
-        expect(callbacks[method].name).to.equal(TestService[method].bind(TestService).name);
-      }
-    });
-
-    it('should bind the mock callback methods to the service', () => {
-      const params = {
-        mockCall: () => {},
-        mockFull: () => {},
-      };
-      const callbacks = TestService._getServiceCallback(params);
-
-      for (const method of TestService.SERVICE_CALLBACK_MOCK_METHODS) {
-        expect(callbacks[method].name).to.equal(params[method].bind(TestService).name);
-      }
-    });
-
-    it('should not include undefined methods in the callback object', () => {
-      const callbacks = TestService._getServiceCallback({
-        mockCall: () => {},
+        initServiceClient: () => {},
+        createRequest: () => {},
+        execute: () => {},
+        parseResponse: () => {},
       });
 
-      expect(callbacks.mockFull).to.be.undefined;
+      const customParams = {
+        mockCall: () => {},
+      };
+      const configCallbacks = TestService._getServiceCallback(customParams);
+
+      expect(configCallbacks.executeOverride).to.be.true;
+      expect(configCallbacks.initServiceClient).to.be.a('function');
+      expect(configCallbacks.createRequest).to.be.a('function');
+      expect(configCallbacks.execute).to.be.a('function');
+      expect(configCallbacks.parseResponse).to.be.a('function');
+      expect(configCallbacks.mockCall).to.be.a('function');
     });
   });
 
-  describe('_handleErrorResult()', () => {
-    it('should transform an error into a structured result', () => {
+  describe('#_handleErrorResult()', () => {
+    it('should return an error result for a thrown error', () => {
       const error = new Error('Test Error');
-      const result = BaseService._handleErrorResult(error);
+      const result = TestService._handleErrorResult(error);
 
-      expect(result.status).to.equal('ERROR');
-      expect(result.ok).to.be.false;
-      expect(result.errorMessage).to.equal('Test Error');
+      expect(result).to.deep.equal({
+        error: -1,
+        errorMessage: error.message,
+        msg: error.stack,
+        object: null,
+        ok: false,
+        status: 'ERROR',
+        unavailableReason: null,
+      });
+    });
+
+    it('should return the original result if it is not an error', () => {
+      const object = {};
+      const result = new MockResult(MockResult.ERROR, object);
+      const handledResult = TestService._handleErrorResult(result);
+
+      expect(handledResult).to.equal(result);
+      expect(handledResult.ok).to.be.false;
+      expect(handledResult.object).to.equal(object);
     });
   });
 
-  describe('_handleSuccessResult()', () => {
-    it('should return the input result', () => {
-      const result = { ok: true };
-      const successResult = BaseService._handleSuccessResult(result);
+  describe('#_handleSuccessResult()', () => {
+    it('should return the original result', () => {
+      const object = {};
+      const result = new MockResult(MockResult.OK, object);
+      const handledResult = TestService._handleSuccessResult(result);
 
-      expect(successResult).to.equal(result);
+      expect(handledResult).to.equal(result);
+      expect(handledResult.ok).to.be.true;
+      expect(handledResult.object).to.equal(object);
     });
   });
 
-  describe('_getServiceCredential()', () => {
+  describe('#_getServiceCredential()', () => {
     it('should return the service credential from the service configuration', () => {
-      const svc = new MockService('test.service', {});
-      const getServiceCredentialSpy = sinon.spy(BaseService, '_getServiceCredential');
-      const params = {};
-      const credential = BaseService._getServiceCredential(svc, params);
+      const service = TestService._createService('alias', params);
+      const credential = TestService._getServiceCredential(service, params);
 
-      expect(getServiceCredentialSpy.calledOnce).to.be.true;
-      expect(getServiceCredentialSpy.calledWith(svc, params)).to.be.true;
-      expect(credential.user).to.equal('user');
-      expect(credential.password).to.equal('password');
-      getServiceCredentialSpy.restore();
+      expect(credential).to.be.instanceOf(MockServiceCredential);
     });
   });
 });

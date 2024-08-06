@@ -1,135 +1,125 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
+const { expect } = require('chai');
 const sinon = require('sinon');
-const mocks = require('../../../mockPathMap');
+const proxyquire = require('proxyquire').noCallThru();
 
+const mocks = require('../../../mocks');
 const MockFTPClient = mocks['dw/net/FTPClient'];
 const MockSFTPClient = mocks['dw/net/SFTPClient'];
-const MockServiceProfile = mocks['dw/svc/ServiceProfile'];
-const MockServiceCredential = mocks['dw/svc/ServiceCredential'];
-const SFTPService = mocks['*/cartridge/scripts/webservice/SFTPService'];
+const MockFTPService = mocks['dw/svc/FTPService'];
+const MockLocalServiceRegistry = mocks['dw/svc/LocalServiceRegistry'];
+
+const BaseService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
+  'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
+});
+const SFTPService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/SFTPService', {
+  'dw/net/FTPClient': MockFTPClient,
+  'dw/net/SFTPClient': MockSFTPClient,
+  '*/cartridge/scripts/webservice/BaseService': BaseService,
+});
 
 describe('scripts/webservice/SFTPService', () => {
-  describe('initServiceClient()', () => {
-    let credential;
-    let profile;
-    let svc;
-    let TestService;
+  let TestService;
 
-    beforeEach(() => {
-      profile = new MockServiceProfile();
-      credential = new MockServiceCredential('sftp.test.credentials');
-      svc = {
-        configuration: {
-          profile,
-          credential,
-        },
-      };
-      TestService = SFTPService.extend({
-        _getServiceCredential: sinon.stub().returns(credential),
-      });
-    });
-
-    it('should initialize an FTP client correctly', () => {
-      credential.URL = 'ftp://test.com';
-      profile.timeoutMillis = 3000;
-      TestService = TestService.extend({
-        _getClient: sinon.stub().returns({
-          connect: sinon.stub(),
-          setTimeout: sinon.stub(),
-        }),
-      });
-
-      const client = TestService.initServiceClient(svc);
-
-      expect(client.connect.calledWith('test.com', 'user', 'password')).to.be.true;
-      expect(client.setTimeout.calledWith(profile.timeoutMillis)).to.be.true;
-    });
-
-    it('should initialize an SFTP client correctly', () => {
-      credential.URL = 'sftp://test.com';
-      profile.timeoutMillis = null;
-
-      TestService = TestService.extend({
-        _getClient: sinon.stub().returns({
-          connect: sinon.stub(),
-          setTimeout: sinon.stub(),
-        }),
-      });
-
-      const client = TestService.initServiceClient(svc);
-
-      expect(client.connect.calledWith('test.com', 'user', 'password')).to.be.true;
-      expect(client.setTimeout.calledOnce).to.be.false;
-    });
-
-    it('should throw an error if the URL is invalid', () => {
-      credential.URL = 'invalid://test.com';
-      expect(() => TestService.initServiceClient(svc)).to.throw('(S)FTP URL is invalid!');
+  beforeEach(() => {
+    TestService = SFTPService.extend({
+      SERVICE_CONFIGURATIONS: {
+        default: 'sftp.service',
+        ftp: 'ftp.service',
+        sftp: 'sftp.service',
+      },
     });
   });
 
-  describe('execute()', () => {
-    let client;
-    let svc;
-    let TestService;
+  describe('#initServiceClient()', () => {
+    it('should initialize an FTP client correctly', () => {
+      const params = {};
+      const svc = TestService._createService('ftp', params);
+      const client = TestService.initServiceClient(svc);
 
-    beforeEach(() => {
-      client = {
-        get: sinon.stub().returns('fileContent'),
-        put: sinon.stub().returns('putResult'),
-      };
-      svc = {
-        client: client,
-      };
-      TestService = SFTPService.extend();
+      expect(client).to.be.instanceOf(MockFTPClient);
+      sinon.assert.calledOnce(client.connect);
     });
 
+    it('should initialize an SFTP client correctly', () => {
+      const params = {};
+      const svc = TestService._createService('sftp', params);
+      const client = TestService.initServiceClient(svc);
+
+      expect(client).to.be.instanceOf(MockSFTPClient);
+      sinon.assert.calledOnce(client.connect);
+    });
+
+    it('should throw an error if the URL is invalid', () => {
+      const params = {};
+      const svc = TestService._createService(undefined, params);
+      const errorMessage = '(S)FTP URL is invalid!';
+
+      svc.configuration.credential.URL = 'invalid://test.com';
+
+      expect(() => TestService.initServiceClient(svc)).to.throw(errorMessage);
+    });
+  });
+
+  describe('#execute()', () => {
     it('should execute a single operation with arguments', () => {
       const params = {
         operation: 'get',
         args: ['remotePath', 'localPath']
       };
+      const svc = TestService._createService('sftp', params);
 
-      const result = TestService.execute(svc, params);
-      expect(client.get.calledWith('remotePath', 'localPath')).to.be.true;
-      expect(result).to.equal('fileContent');
+      TestService.execute(svc, params);
+
+      expect(svc).to.be.instanceOf(MockFTPService);
+      sinon.assert.calledWith(svc.client.get, 'remotePath', 'localPath');
     });
 
     it('should execute multiple operations using callback', () => {
-      const mockOnExecute = sinon.stub().returns('executeResult');
       const params = {
-        onExecute: mockOnExecute
+        onExecute: (svc) => {
+          var client = svc.client;
+
+          if (client.cd('path/to')) {
+            return client.del('file.xml');
+          }
+
+          return false;
+        }
       };
+      const svc = TestService._createService('sftp', params);
+
+      svc.client.cd.returns(true);
+      svc.client.del.returns(false);
 
       const result = TestService.execute(svc, params);
-      expect(mockOnExecute.calledOnce).to.be.true;
-      expect(result).to.equal('executeResult');
+
+      expect(svc).to.be.instanceOf(MockFTPService);
+      expect(result).to.be.false;
+      sinon.assert.calledWith(svc.client.cd, 'path/to');
+      sinon.assert.calledWith(svc.client.del, 'file.xml');
     });
 
     it('should throw an error if no valid operation or callback is provided', () => {
       const params = {};
+      const svc = TestService._createService('sftp', params);
       const errorMessage = 'Operation with arguments should be provided. Or execute callback.';
+
       expect(() => TestService.execute(svc, params)).to.throw(errorMessage);
     });
   });
 
-  describe('_getClient()', () => {
-    let TestService;
-
-    beforeEach(() => {
-      TestService = SFTPService.extend();
-    });
-
+  describe('#_getClient()', () => {
     it('should return an FTP client for ftp protocol', () => {
       const client = TestService._getClient('ftp');
+
       expect(client).to.be.instanceof(MockFTPClient);
     });
 
     it('should return an SFTP client for sftp protocol', () => {
       const client = TestService._getClient('sftp');
+
       expect(client).to.be.instanceof(MockSFTPClient);
     });
 

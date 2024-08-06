@@ -4,29 +4,25 @@ const File = require('../io/File');
 const Bytes = require('../util/Bytes');
 
 class HTTPRequestPart {
-  constructor(name, value, contentType = null, encoding = null, fileName = null) {
+  constructor(name, value, contentType, encoding, fileName) {
     this.name = name;
     this.bytesValue = null;
-    this.fileValue = null;
     this.stringValue = null;
+    this.fileValue = null;
     this.contentType = contentType || 'text/plain';
-    this.encoding = encoding || 'US-ASCII';
-    this.fileName = fileName;
+    this.encoding = encoding || 'ISO-8859-1';
+    this.fileName = fileName || null;
 
     if (value instanceof Bytes) {
       this.bytesValue = value;
-      if (!contentType) this.contentType = 'application/octet-stream';
+      this.contentType = contentType || 'application/octet-stream';
+      if (!encoding) this.encoding = null;
     } else if (value instanceof File) {
       this.fileValue = value;
-      if (!contentType) this.contentType = 'application/octet-stream';
-      if (!encoding) this.encoding = 'ISO-8859-1';
-      if (!fileName) this.fileName = value.path;
+      this.contentType = contentType || 'application/octet-stream';
     } else if (typeof value === 'string') {
       this.stringValue = value;
-      if (!contentType) this.contentType = 'text/plain';
-      if (!encoding) this.encoding = 'US-ASCII';
-    } else {
-      throw new TypeError('Invalid value type for HTTPRequestPart');
+      this.bytesValue = new Bytes(value, encoding || 'ASCII');
     }
   }
 

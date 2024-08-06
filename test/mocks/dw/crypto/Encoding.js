@@ -10,6 +10,13 @@ class Encoding {
     return new Bytes(Buffer.from(string, 'base64').toString());
   }
 
+  static toBase64(bytes) {
+    if (bytes === null) {
+      throw new Error('Null value is not allowed');
+    }
+    return Buffer.from(bytes.bytes).toString('base64');
+  }
+
   static fromHex(string) {
     if (string === null) {
       throw new Error('Null value is not allowed');
@@ -20,32 +27,31 @@ class Encoding {
     return new Bytes(Buffer.from(string, 'hex').toString());
   }
 
-  static fromURI(string, encoding = 'UTF-8') {
-    if (string === null || encoding === null) {
-      throw new Error('Null value is not allowed');
-    }
-    return decodeURIComponent(Buffer.from(string, encoding).toString());
-  }
-
-  static toBase64(bytes) {
-    if (bytes === null) {
-      throw new Error('Null value is not allowed');
-    }
-    return bytes.toString('base64');
-  }
-
   static toHex(bytes) {
     if (bytes === null) {
       throw new Error('Null value is not allowed');
     }
-    return bytes.toString('hex');
+    return Buffer.from(bytes.bytes).toString('hex');
+  }
+
+  static fromURI(string, encoding = 'UTF-8') {
+    if (string === null || encoding === null) {
+      throw new Error('Null value is not allowed');
+    }
+
+    const str = Buffer.from(string, encoding).toString();
+    return decodeURIComponent(str.replace(/\+/g, '%20'));
   }
 
   static toURI(string, encoding = 'UTF-8') {
     if (string === null || encoding === null) {
       throw new Error('Null value is not allowed');
     }
-    return encodeURIComponent(Buffer.from(string, encoding).toString());
+
+    const str = Buffer.from(string, encoding).toString();
+    return encodeURIComponent(str).toString().replace(/%20/g, '+').replace(/[!'()]/g, function (c) {
+      return '%' + c.charCodeAt(0).toString(16);
+    });
   }
 }
 

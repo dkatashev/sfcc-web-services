@@ -3,14 +3,14 @@
 const ExtensibleObject = require('../object/ExtensibleObject');
 
 class ServiceProfile extends ExtensibleObject {
-  constructor() {
+  constructor(ID = '', timeoutMillis = 0) {
     super();
-    this.ID = '';
+    this.ID = ID;
+    this.timeoutMillis = timeoutMillis;
     this.cbCalls = 0;
     this.cbMillis = 0;
     this.rateLimitCalls = 0;
     this.rateLimitMillis = 0;
-    this.timeoutMillis = 0;
   }
 
   getCbCalls() {

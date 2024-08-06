@@ -18,13 +18,18 @@ module.exports = {
    * @returns {Array.<MultipartChunk>} The parsed parts.
    */
   parse: function (boundary, body) {
+    var parts = [];
+
+    if (!body.length) {
+      return parts;
+    }
+
     var crlf = '\r\n';
     var crlfBytes = new Bytes(crlf);
     var emptyLineBytes = new Bytes(crlf + crlf);
     var delimiterBytes = new Bytes(crlf + '--' + boundary);
     var byteStream = new ByteStream(body);
     var HN = ByteStream.charCode.HN;
-    var parts = [];
 
     // Ignore preamble
     if (!byteStream.readUntil(new Bytes('--' + boundary))) {
@@ -45,13 +50,14 @@ module.exports = {
 
       // Read headers
       var rawHeaders = byteStream.readUntil(emptyLineBytes);
+      var parsedHeaders = headers.parse(rawHeaders ? rawHeaders.toString() : '');
 
       // Read body
       var rawBody = byteStream.readUntil(delimiterBytes);
 
       parts.push({
-        headers: headers.parse(rawHeaders.toString()),
-        body: rawBody
+        headers: parsedHeaders,
+        body: rawBody,
       });
     }
 
@@ -67,12 +73,19 @@ module.exports = {
    */
   format: function (boundary, parts) {
     var crlf = '\r\n';
-    var delimiter = crlf + '--' + boundary;
+    var delimiter = '--' + boundary;
     var body = parts.map(function (part) {
-      return headers.format(part.headers) + crlf + crlf + part.body;
-    }).join(delimiter + crlf);
+      var headersString = headers.format(part.headers);
+      return delimiter + crlf + headersString + crlf + crlf + part.body;
+    }).join(crlf);
 
-    return delimiter + crlf + body + crlf + delimiter + '--';
+    if (body) {
+      body += crlf + delimiter + '--';
+    } else {
+      body = delimiter + '--';
+    }
+
+    return body;
   },
 };
 

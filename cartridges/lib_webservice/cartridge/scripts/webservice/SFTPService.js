@@ -24,15 +24,15 @@ var SFTPService = BaseService.extend({
 
     var protocolType = match[1];
     var host = match[2];
-    var client = this._getClient(protocolType);
 
-    client.connect(host, credential.user, credential.password);
+    svc.client = this._getClient(protocolType);
+    svc.client.connect(host, credential.user, credential.password);
 
     if (typeof profile.timeoutMillis === 'number') {
-      client.setTimeout(profile.timeoutMillis);
+      svc.client.setTimeout(profile.timeoutMillis);
     }
 
-    return client;
+    return svc.client;
   },
 
   /**

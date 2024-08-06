@@ -17,7 +17,7 @@ module.exports = {
       if (next) {
         var pairs = next.split('=');
         var key = Encoding.fromURI(pairs[0]);
-        var value = Encoding.fromURI(pairs[1]);
+        var value = Encoding.fromURI(pairs[1] || '');
 
         state[key] = value;
       }

@@ -1,15 +1,13 @@
 'use strict';
 
-/* eslint-disable no-restricted-syntax */
-
 const DwSet = require('./Set');
 const MapEntry = require('./MapEntry');
 
 class DwMap {
-  constructor() {
+  constructor(map = new Map()) {
     Object.defineProperties(this, {
       map: {
-        value: new Map()
+        value: map
       },
       empty: {
         get() {
@@ -40,12 +38,12 @@ class DwMap {
   entrySet() {
     const set = new DwSet();
 
-    for (const [key, value] of this.map.entries()) {
+    Array.from(this.map.entries()).forEach(([key, value]) => {
       const mapEntry = new MapEntry();
       mapEntry.key = key;
       mapEntry.value = value;
       set.add(mapEntry);
-    }
+    });
 
     return set;
   }
@@ -70,9 +68,9 @@ class DwMap {
   keySet() {
     const set = new DwSet();
 
-    for (const key of this.map.keys()) {
+    Array.from(this.map.keys()).forEach((key) => {
       set.add(key);
-    }
+    });
 
     return set;
   }
@@ -84,9 +82,9 @@ class DwMap {
   }
 
   putAll(other) {
-    for (const [key, value] of other.map.entries()) {
+    Array.from(other.map.entries()).forEach(([key, value]) => {
       this.map.set(key, value);
-    }
+    });
   }
 
   remove(key) {

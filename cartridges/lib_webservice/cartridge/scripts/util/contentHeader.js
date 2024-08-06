@@ -20,26 +20,25 @@ module.exports = {
       type: '',
       params: {}
     };
-    var parts = header.split(';').map(function (part) {
-      return part.trim();
-    });
+    var parts = header.split(';').map(function (part) { return part.trim(); });
     var type = parts.shift();
     var typeRegex = headerType === 'disposition' ? this.DISPOSITION_TYPE_RE : this.MIME_TYPE_RE;
+    var self = this;
 
     if (typeRegex.test(type)) {
       result.type = type;
     }
 
     parts.forEach(function (param) {
-      var match = this.PARAMETER_RE.exec(param);
+      var match = self.PARAMETER_RE.exec(param);
 
       if (match) {
         var key = match[1];
-        var value = match[2].replace(/^"|"$/g, '');
+        var value = match[2].replace(/^"|"$/g, '').replace(/\\"/g, '"');
 
         result.params[key] = value;
       }
-    }, this);
+    });
 
     return result;
   },
@@ -51,11 +50,24 @@ module.exports = {
    * @returns {string} The content header string.
    */
   format: function (contentHeader) {
-    var parts = [contentHeader.type];
+    var parts = [];
 
-    Object.keys(contentHeader.params).forEach(function (param) {
-      parts.push(param + '=' + contentHeader.params[param]);
-    });
+    if (contentHeader.type) {
+      parts.push(contentHeader.type);
+    }
+
+    if (contentHeader.params !== null && typeof contentHeader.params === 'object') {
+      var quoteValue = function (value) {
+        if (/[\s\\"]/.test(value)) {
+          return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+        }
+        return value;
+      };
+
+      Object.keys(contentHeader.params).forEach(function (param) {
+        parts.push(param + '=' + quoteValue(contentHeader.params[param]));
+      });
+    }
 
     return parts.join('; ');
   },

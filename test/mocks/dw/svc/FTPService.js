@@ -5,10 +5,11 @@ const FTPClient = require('../net/FTPClient');
 const SFTPClient = require('../net/SFTPClient');
 
 class FTPService extends Service {
-  constructor(type, serviceCallback) {
-    super(serviceCallback);
+  constructor(serviceId, callbacks, serviceType) {
+    super(serviceId, callbacks, serviceType);
+
     this.autoDisconnect = false;
-    this.client = type === 'ftp' ? new FTPClient() : new SFTPClient();
+    this.client = serviceType === 'FTP' ? new FTPClient() : new SFTPClient();
   }
 
   getClient() {

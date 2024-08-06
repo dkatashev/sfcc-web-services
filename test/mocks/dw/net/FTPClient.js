@@ -1,35 +1,27 @@
 'use strict';
 
-/* eslint-disable class-methods-use-this */
+const sinon = require('sinon');
 
 class FTPClient {
   constructor() {
-    this.connected = true;
+    this.connected = false;
     this.replyCode = 0;
     this.replyMessage = '';
     this.timeout = 0;
-  }
 
-  cd() {
-    return true;
-  }
-
-  connect() {
-    return true;
-  }
-
-  del() {
-    return true;
-  }
-
-  disconnect() {}
-
-  get() {
-    return '';
-  }
-
-  getBinary() {
-    return true;
+    this.cd = sinon.stub();
+    this.connect = sinon.stub();
+    this.del = sinon.stub();
+    this.disconnect = sinon.stub();
+    this.get = sinon.stub();
+    this.getBinary = sinon.stub();
+    this.list = sinon.stub();
+    this.mkdir = sinon.stub();
+    this.put = sinon.stub();
+    this.putBinary = sinon.stub();
+    this.removeDirectory = sinon.stub();
+    this.rename = sinon.stub();
+    this.setTimeout = sinon.stub();
   }
 
   getConnected() {
@@ -48,33 +40,14 @@ class FTPClient {
     return this.timeout;
   }
 
-  list() {
-    return [];
-  }
-
-  mkdir() {
-    return true;
-  }
-
-  put() {
-    return true;
-  }
-
-  putBinary() {
-    return true;
-  }
-
-  removeDirectory() {
-    return true;
-  }
-
-  rename() {
-    return true;
-  }
-
-  setTimeout(timeoutMillis) {
-    this.timeout = timeoutMillis;
+  setTimeout(timeout) {
+    this.timeout = timeout;
   }
 }
+
+FTPClient.DEFAULT_GET_FILE_SIZE = 5242880;
+FTPClient.DEFAULT_GET_STRING_SIZE = 2097152;
+FTPClient.MAX_GET_FILE_SIZE = 209715200;
+FTPClient.MAX_GET_STRING_SIZE = 10485760;
 
 module.exports = FTPClient;

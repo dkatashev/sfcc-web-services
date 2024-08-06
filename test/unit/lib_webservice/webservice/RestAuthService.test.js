@@ -1,72 +1,114 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
+const { expect } = require('chai');
 const sinon = require('sinon');
-const mocks = require('../../../mockPathMap');
+const proxyquire = require('proxyquire').noCallThru();
 
+const mocks = require('../../../mocks');
+const MockXML = mocks['global/XML'];
+const MockBytes = mocks['dw/util/Bytes'];
 const MockResult = mocks['dw/svc/Result'];
+const MockEncoding = mocks['dw/crypto/Encoding'];
 const MockCache = mocks['dw/system/Cache'];
 const MockCacheMgr = mocks['dw/system/CacheMgr'];
-const RestAuthService = mocks['*/cartridge/scripts/webservice/RestAuthService'];
+const MockHTTPRequestPart = mocks['dw/net/HTTPRequestPart'];
+const MockLocalServiceRegistry = mocks['dw/svc/LocalServiceRegistry'];
+
+global.XML = MockXML;
+
+const ByteStream = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/ByteStream', {
+  'dw/util/Bytes': MockBytes,
+});
+const contentHeader = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/contentHeader', {});
+const headers = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/headers', {});
+const urlencoded = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/urlencoded', {
+  'dw/crypto/Encoding': MockEncoding,
+});
+const multipart = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/multipart', {
+  'dw/util/Bytes': MockBytes,
+  '*/cartridge/scripts/util/headers': headers,
+  '*/cartridge/scripts/util/ByteStream': ByteStream,
+});
+const BaseService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
+  'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
+});
+const RestService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/RestService', {
+  'dw/net/HTTPRequestPart': MockHTTPRequestPart,
+  '*/cartridge/scripts/webservice/BaseService': BaseService,
+  '*/cartridge/scripts/util/contentHeader': contentHeader,
+  '*/cartridge/scripts/util/urlencoded': urlencoded,
+  '*/cartridge/scripts/util/multipart': multipart,
+});
+const RestAuthService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/RestAuthService', {
+  'dw/system/CacheMgr': MockCacheMgr,
+  '*/cartridge/scripts/webservice/RestService': RestService,
+});
 
 describe('scripts/webservice/RestAuthService', () => {
-  describe('authorize()', () => {
-    it('should perform authorization using the auth service action', () => {
-      const TestService = RestAuthService.extend({
-        fetch: sinon.stub().returns(new MockResult({ ok: true })),
-      });
+  const config = {
+    CACHE_ID: 'testCacheId',
+    CACHE_KEY: 'testCacheKey',
+  };
+  let TestService;
 
-      const result = TestService.authorize();
-      expect(TestService.fetch.calledOnce).to.be.true;
-      expect(TestService.fetch.calledWith('auth', sinon.match({
+  beforeEach(() => {
+    TestService = RestAuthService.extend({
+      SERVICE_CONFIGURATIONS: {
+        default: 'http.default',
+        alias: 'http.alias',
+      },
+      CACHE_ID: config.CACHE_ID,
+      CACHE_KEY: config.CACHE_KEY,
+    });
+  });
+
+  describe('#authorize()', () => {
+    it('should perform authorization using the auth service action', () => {
+      const object = {
+        token_type: 'Bearer',
+        access_token: 'token'
+      };
+      const params = {
         method: 'POST',
         dataType: 'form',
         data: { grant_type: 'client_credentials' }
-      }))).to.be.true;
+      };
+
+      TestService = TestService.extend({
+        fetch: sinon.stub().returns(new MockResult(MockResult.OK, object)),
+      });
+
+      const result = TestService.authorize();
+
+      expect(TestService.fetch.calledOnce).to.be.true;
+      expect(TestService.fetch.calledWith('auth', sinon.match(params))).to.be.true;
       expect(result.ok).to.be.true;
     });
   });
 
-  describe('getAuthentication()', () => {
-    const config = {
-      CACHE_ID: 'testCacheId',
-      CACHE_KEY: 'testCacheKey',
-    };
-    let TestService;
-    let getCacheStub;
-
+  describe('#getAuthentication()', () => {
     beforeEach(() => {
-      TestService = RestAuthService.extend({
+      TestService = TestService.extend({
         authorize: sinon.stub(),
-        CACHE_ID: config.CACHE_ID,
-        CACHE_KEY: config.CACHE_KEY,
       });
-
-      getCacheStub = sinon.stub(MockCacheMgr, 'getCache');
-    });
-
-    afterEach(() => {
-      getCacheStub.restore();
     });
 
     it('should return authentication from cache if available', () => {
       const authData = { type: 'Bearer', credentials: 'testToken' };
       const cache = new MockCache({ [config.CACHE_KEY]: authData });
-      getCacheStub.returns(cache);
+
+      MockCacheMgr.store[config.CACHE_ID] = cache;
+
       const authentication = TestService.getAuthentication();
 
-      expect(getCacheStub.calledOnce).to.be.true;
-      expect(getCacheStub.calledWith(config.CACHE_ID)).to.be.true;
       expect(authentication).to.equal(authData);
     });
 
     it('should call authorize and store authentication in cache if not available', () => {
       const data = { token_type: 'Bearer', access_token: 'testToken' };
-      const result = new MockResult();
+      const result = new MockResult(MockResult.OK, data);
 
-      result.object = data;
-      getCacheStub.returns(new MockCache());
+      MockCacheMgr.store[config.CACHE_ID] = new MockCache();
       TestService.authorize.returns(result);
 
       const authentication = TestService.getAuthentication();
@@ -77,9 +119,9 @@ describe('scripts/webservice/RestAuthService', () => {
     });
 
     it('should throw an error if authorization fails', () => {
-      const result = MockResult.unitTest.ERROR;
+      const result = new MockResult(MockResult.ERROR, {});
 
-      getCacheStub.returns(new MockCache());
+      MockCacheMgr.store[config.CACHE_ID] = new MockCache();
       TestService.authorize.returns(result);
 
       expect(() => TestService.getAuthentication()).to.throw(result.errorMessage);

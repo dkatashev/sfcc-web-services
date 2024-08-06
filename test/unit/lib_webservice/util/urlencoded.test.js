@@ -1,13 +1,16 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
-const mocks = require('../../../mockPathMap');
+const { expect } = require('chai');
+const proxyquire = require('proxyquire').noCallThru();
 
-const urlencoded = mocks['*/cartridge/scripts/util/urlencoded'];
+const mocks = require('../../../mocks');
+const MockEncoding = mocks['dw/crypto/Encoding'];
+const urlencoded = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/urlencoded', {
+  'dw/crypto/Encoding': MockEncoding,
+});
 
 describe('scripts/util/urlencoded', () => {
-  describe('parse()', () => {
+  describe('#parse()', () => {
     it('should parse a URL-encoded string into an object', () => {
       const result = urlencoded.parse('key1=value1&key2=value2');
 
@@ -31,9 +34,27 @@ describe('scripts/util/urlencoded', () => {
 
       expect(result).to.deep.equal({});
     });
+
+    it('should handle strings without "="', () => {
+      const result = urlencoded.parse('key1&key2');
+
+      expect(result).to.deep.equal({
+        key1: '',
+        key2: '',
+      });
+    });
+
+    it('should handle strings with empty values', () => {
+      const result = urlencoded.parse('key1=&key2=');
+
+      expect(result).to.deep.equal({
+        key1: '',
+        key2: '',
+      });
+    });
   });
 
-  describe('format()', () => {
+  describe('#format()', () => {
     it('should convert an object to a URL-encoded string', () => {
       const result = urlencoded.format({
         key1: 'value1',
@@ -45,17 +66,35 @@ describe('scripts/util/urlencoded', () => {
 
     it('should encode keys and values', () => {
       const result = urlencoded.format({
-        'key 1': 'value 1',
-        'key 2': 'value 2',
+        'key 1': 'value-1',
+        'key 2': 'value(2)',
       });
 
-      expect(result).to.equal('key%201=value%201&key%202=value%202');
+      expect(result).to.equal('key+1=value-1&key+2=value%282%29');
     });
 
     it('should handle empty objects', () => {
       const result = urlencoded.format({});
 
       expect(result).to.equal('');
+    });
+
+    it('should handle objects with empty values', () => {
+      const result = urlencoded.format({
+        key1: '',
+        key2: '',
+      });
+
+      expect(result).to.equal('key1=&key2=');
+    });
+
+    it('should handle objects with special characters', () => {
+      const result = urlencoded.format({
+        'key@1': 'value$1',
+        'key/2': 'value+2',
+      });
+
+      expect(result).to.equal('key%401=value%241&key%2F2=value%2B2');
     });
   });
 });

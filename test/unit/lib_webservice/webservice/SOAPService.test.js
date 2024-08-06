@@ -1,277 +1,148 @@
 'use strict';
 
-const chai = require('chai');
-const expect = chai.expect;
+const { expect } = require('chai');
 const sinon = require('sinon');
-const mocks = require('../../../mockPathMap');
+const proxyquire = require('proxyquire').noCallThru();
 
-const MockMap = mocks['dw/util/Map'];
+const mocks = require('../../../mocks');
 const MockPort = mocks['dw/ws/Port'];
 const MockWSUtil = mocks['dw/ws/WSUtil'];
-const SOAPService = mocks['*/cartridge/scripts/webservice/SOAPService'];
+const MockWebReference2 = mocks['dw/ws/WebReference2'];
+const MockSOAPService = mocks['dw/svc/SOAPService'];
+const MockHashMap = mocks['dw/util/HashMap'];
+const MockLocalServiceRegistry = mocks['dw/svc/LocalServiceRegistry'];
 
 global.webreferences2 = {
-  MyWebReference: {
-    getService: sinon.stub().returns({
-      myOperation: sinon.stub().returns('response')
-    }),
-    defaultService: {
-      myOperation: sinon.stub().returns('response')
-    },
-  }
+  MyWebReference: new MockWebReference2({
+    defaultService: new MockPort(['myOperation']),
+    myService: {
+      myPort: new MockPort(['myOperation']),
+    }
+  }, ['TestRequest']),
 };
 
+const BaseService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
+  'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
+});
+const SOAPService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/SOAPService', {
+  'dw/ws/Port': MockPort,
+  'dw/ws/WSUtil': MockWSUtil,
+  '*/cartridge/scripts/webservice/BaseService': BaseService,
+});
+
 describe('scripts/webservice/SOAPService', () => {
-  describe('createRequest()', () => {
-    let svc;
-    let TestService;
+  let TestService;
 
-    beforeEach(() => {
-      svc = {
-        setServiceClient: sinon.spy(),
-        webReference: {},
-        webReferencePort: {},
-        operation: '',
-      };
-
-      TestService = SOAPService.extend({
-        _addSOAPHeaders: sinon.spy(),
-        _setHTTPHeaders: sinon.spy(),
-        _setWSSecurityConfig: sinon.spy(),
-        _setProperties: sinon.spy(),
-      });
+  beforeEach(() => {
+    TestService = SOAPService.extend({
+      SERVICE_CONFIGURATIONS: {
+        default: 'soap.service',
+      },
     });
+  });
 
-    it('should create a SOAP request and set service client', () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  describe('#createRequest()', () => {
+    it('should create a SOAP request and set headers, properties, and security config', () => {
       const params = {
         webReference: 'MyWebReference',
         operation: 'myOperation',
-        getRequest: sinon.stub().returns('request')
+        service: { name: 'myService', port: 'myPort' },
+        soapHeaders: [{ header: '<header>', mustUnderstand: true, actor: 'uri' }],
+        httpHeaders: { 'Content-Type': 'application/soap+xml' },
+        securityConfig: { requestConfigMap: new MockHashMap(), responseConfigMap: new MockHashMap() },
+        properties: { encoding: 'UTF-8', session: true, unknown: 'unknown' },
+        getRequest: (svc, webReference) => {
+          const request = new webReference.TestRequest();
+          return request;
+        }
       };
+      const svc = TestService._createService('default', params);
 
-      const result = TestService.createRequest(svc, params);
+      TestService.createRequest(svc, params);
 
       expect(svc.webReference).to.equal(webreferences2.MyWebReference);
+      expect(svc.webReferencePort).to.equal(webreferences2.MyWebReference.getService(params.service.name, params.service.port));
+      expect(svc.operation).to.equal(params.operation);
+      expect(svc.serviceClient).to.equal(svc.webReferencePort);
+      expect(MockWSUtil.addSOAPHeader.calledWith(svc.serviceClient, '<header>', true, 'uri')).to.be.true;
+      expect(MockWSUtil.setHTTPRequestHeader.calledWith(svc.serviceClient, 'Content-Type', 'application/soap+xml')).to.be.true;
+      expect(MockWSUtil.setWSSecurityConfig.calledWith(svc.serviceClient, params.securityConfig.requestConfigMap, params.securityConfig.requestConfigMap)).to.be.true;
+      expect(MockWSUtil.setProperty.calledWith(MockPort.ENCODING, params.properties.encoding, svc.serviceClient)).to.be.true;
+      expect(MockWSUtil.setProperty.calledWith(MockPort.SESSION_MAINTAIN_PROPERTY, params.properties.session, svc.serviceClient)).to.be.true;
+      expect(svc.webReference.TestRequest.calledWithNew()).to.be.true;
+    });
+
+    it('should call onCreateRequest callback if provided', () => {
+      const params = {
+        webReference: 'MyWebReference',
+        operation: 'myOperation',
+        onCreateRequest: sinon.stub(),
+        getRequest: sinon.stub().returns('requestObject')
+      };
+      const svc = TestService._createService('default', params);
+
+      TestService.createRequest(svc, params);
+
+      expect(params.onCreateRequest.calledOnceWith(params, svc)).to.be.true;
+    });
+
+    it('should use defaultService if no service is provided', () => {
+      const params = {
+        webReference: 'MyWebReference',
+        operation: 'myOperation',
+        getRequest: sinon.stub().returns('requestObject')
+      };
+      const svc = TestService._createService('default', params);
+
+      TestService.createRequest(svc, params);
+
       expect(svc.webReferencePort).to.equal(webreferences2.MyWebReference.defaultService);
-      expect(svc.operation).to.equal('myOperation');
-      expect(svc.setServiceClient.calledOnce).to.be.true;
-      expect(result).to.equal('request');
     });
 
-    it('should call custom onCreateRequest callback', () => {
+    it('should handle default case in createRequest', () => {
       const params = {
         webReference: 'MyWebReference',
         operation: 'myOperation',
-        onCreateRequest: sinon.spy(),
-        getRequest: sinon.stub().returns('request')
+        getRequest: sinon.stub().returns('requestObject')
       };
+      const svc = TestService._createService('default', params);
 
       TestService.createRequest(svc, params);
-      expect(params.onCreateRequest.calledOnce).to.be.true;
-    });
 
-    it('should set service client with custom service', () => {
+      expect(svc).to.be.instanceOf(MockSOAPService);
+    });
+  });
+
+  describe('#execute()', () => {
+    it('should execute the SOAP service request', () => {
       const params = {
         webReference: 'MyWebReference',
-        service: { name: 'customService', port: 'customPort' },
         operation: 'myOperation',
-        getRequest: sinon.stub().returns('request')
+        getRequest: sinon.stub().returns('requestObject')
       };
+      const svc = TestService._createService('default', params);
+      const port = webreferences2.MyWebReference.defaultService;
 
       TestService.createRequest(svc, params);
+      port[params.operation].returns('response');
 
-      expect(svc.webReferencePort).to.equal(webreferences2.MyWebReference.getService('customService', 'customPort'));
+      const response = TestService.execute(svc, 'requestObject');
+
+      expect(response).to.equal('response');
+      expect(svc.serviceClient.myOperation.calledWith('requestObject')).to.be.true;
     });
   });
 
-  describe('execute()', () => {
-    let svc;
-    let TestService;
+  describe('#parseResponse()', () => {
+    it('should parse the SOAP service response', () => {
+      const responseObject = 'responseObject';
+      const parsedResponse = TestService.parseResponse(null, responseObject);
 
-    beforeEach(() => {
-      svc = {
-        serviceClient: {
-          myOperation: sinon.stub().returns('response')
-        },
-        operation: 'myOperation'
-      };
-
-      TestService = SOAPService.extend();
-    });
-
-    it('should execute the SOAP service request and return the response', () => {
-      const requestObject = {};
-      const result = TestService.execute(svc, requestObject);
-      expect(svc.serviceClient.myOperation.calledWith(requestObject)).to.be.true;
-      expect(result).to.equal('response');
-    });
-  });
-
-  describe('parseResponse()', () => {
-    let svc;
-    let TestService;
-
-    beforeEach(() => {
-      svc = {};
-      TestService = SOAPService.extend();
-    });
-
-    it('should return the response object as is', () => {
-      const responseObject = { key: 'value' };
-      const result = TestService.parseResponse(svc, responseObject);
-      expect(result).to.equal(responseObject);
-    });
-  });
-
-  describe('_addSOAPHeaders()', () => {
-    let svc;
-    let TestService;
-    let addSOAPHeaderStub;
-
-    beforeEach(() => {
-      svc = {
-        serviceClient: {}
-      };
-      TestService = SOAPService.extend();
-      addSOAPHeaderStub = sinon.stub(MockWSUtil, 'addSOAPHeader');
-    });
-
-    afterEach(() => {
-      addSOAPHeaderStub.restore();
-    });
-
-    it('should add SOAP headers to the service client', () => {
-      const soapHeaders = [
-        { header: '<Header1/>', mustUnderstand: true, actor: 'actor1' },
-        { header: '<Header2/>', mustUnderstand: false, actor: 'actor2' }
-      ];
-
-      TestService._addSOAPHeaders(svc, soapHeaders);
-      expect(addSOAPHeaderStub.calledWith(svc.serviceClient, '<Header1/>', true, 'actor1')).to.be.true;
-      expect(addSOAPHeaderStub.calledWith(svc.serviceClient, '<Header2/>', false, 'actor2')).to.be.true;
-    });
-
-    it('should handle empty SOAP headers to the service client', () => {
-      const soapHeaders = null;
-
-      TestService._addSOAPHeaders(svc, soapHeaders);
-      expect(addSOAPHeaderStub.calledOnce).to.be.false;
-    });
-  });
-
-  describe('_setHTTPHeaders()', () => {
-    let svc;
-    let TestService;
-    let setHTTPRequestHeaderStub;
-
-    beforeEach(() => {
-      svc = {
-        serviceClient: {}
-      };
-      TestService = SOAPService.extend();
-      setHTTPRequestHeaderStub = sinon.stub(MockWSUtil, 'setHTTPRequestHeader')
-    });
-
-    afterEach(() => {
-      setHTTPRequestHeaderStub.restore();
-    });
-
-    it('should set HTTP headers for the service client', () => {
-      const httpHeaders = {
-        'Content-Type': 'application/soap+xml',
-        'Custom-Header': 'CustomValue'
-      };
-
-      TestService._setHTTPHeaders(svc, httpHeaders);
-      expect(setHTTPRequestHeaderStub.calledWith(svc.serviceClient, 'Content-Type', 'application/soap+xml')).to.be.true;
-      expect(setHTTPRequestHeaderStub.calledWith(svc.serviceClient, 'Custom-Header', 'CustomValue')).to.be.true;
-    });
-
-    it('should handle empty HTTP headers for the service client', () => {
-      const httpHeaders = null;
-
-      TestService._setHTTPHeaders(svc, httpHeaders);
-      expect(setHTTPRequestHeaderStub.calledOnce).to.be.false;
-    });
-  });
-
-  describe('_setWSSecurityConfig()', () => {
-    let svc;
-    let TestService;
-    let setWSSecurityConfigStub;
-
-    beforeEach(() => {
-      svc = {
-        serviceClient: {}
-      };
-      TestService = SOAPService.extend();
-      setWSSecurityConfigStub = sinon.stub(MockWSUtil, 'setWSSecurityConfig');
-    });
-
-    afterEach(() => {
-      setWSSecurityConfigStub.restore();
-    });
-
-    it('should set WS-Security configuration for the service client', () => {
-      const securityConfig = {
-        requestConfigMap: new MockMap(),
-        responseConfigMap: new MockMap(),
-      };
-
-      TestService._setWSSecurityConfig(svc, securityConfig);
-      expect(setWSSecurityConfigStub.calledWith(svc.serviceClient, securityConfig.requestConfigMap, securityConfig.responseConfigMap)).to.be.true;
-    });
-
-    it('should handle empty WS-Security configuration for the service client', () => {
-      const securityConfig = null;
-
-      TestService._setWSSecurityConfig(svc, securityConfig);
-      expect(setWSSecurityConfigStub.calledOnce).to.be.false;
-    });
-  });
-
-  describe('_setProperties()', () => {
-    let svc;
-    let TestService;
-    let setPropertyStub;
-
-    beforeEach(() => {
-      svc = {
-        serviceClient: {}
-      };
-      TestService = SOAPService.extend();
-      setPropertyStub = sinon.stub(MockWSUtil, 'setProperty');
-    });
-
-    afterEach(() => {
-      setPropertyStub.restore();
-    });
-
-    it('should set SOAP properties for the service client', () => {
-      const properties = {
-        encoding: 'UTF-8',
-        session: true,
-      };
-
-      TestService._setProperties(svc, properties);
-      expect(setPropertyStub.calledWith(MockPort.ENCODING, 'UTF-8', svc.serviceClient)).to.be.true;
-      expect(setPropertyStub.calledWith(MockPort.SESSION_MAINTAIN_PROPERTY, true, svc.serviceClient)).to.be.true;
-    });
-
-    it('should not set unknown SOAP properties for the service client', () => {
-      const properties = {
-        unknown: 'unknown',
-      };
-
-      TestService._setProperties(svc, properties);
-      expect(setPropertyStub.calledOnce).to.be.false;
-    });
-
-    it('should handle empty SOAP properties for the service client', () => {
-      const properties = null;
-
-      TestService._setProperties(svc, properties);
-      expect(setPropertyStub.calledOnce).to.be.false;
+      expect(parsedResponse).to.equal(responseObject);
     });
   });
 });

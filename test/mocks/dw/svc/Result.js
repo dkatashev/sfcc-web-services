@@ -1,14 +1,18 @@
 'use strict';
 
 class Result {
-  constructor() {
-    this.error = -1;
-    this.errorMessage = null;
+  constructor(status = Result.OK, object = null) {
+    this.status = status;
+    this.object = object;
+    this.ok = status === Result.OK;
+
+    if (status === Result.ERROR) {
+      this.error = 0;
+      this.errorMessage = 'ERROR';
+    }
+
     this.mockResult = false;
     this.msg = null;
-    this.object = null;
-    this.ok = true;
-    this.status = Result.OK;
     this.unavailableReason = null;
   }
 
@@ -58,21 +62,5 @@ Result.UNAVAILABLE_CONFIG_PROBLEM = 'UNAVAILABLE_CONFIG_PROBLEM';
 Result.UNAVAILABLE_DISABLED = 'UNAVAILABLE_DISABLED';
 Result.UNAVAILABLE_RATE_LIMITED = 'UNAVAILABLE_RATE_LIMITED';
 Result.UNAVAILABLE_TIMEOUT = 'UNAVAILABLE_TIMEOUT';
-
-Result.unitTest = {
-  OK: (function () {
-    const result = new Result();
-    result.ok = true;
-    result.status = Result.OK;
-    return result;
-  }()),
-  ERROR: (function () {
-    const result = new Result();
-    result.ok = false;
-    result.status = Result.ERROR;
-    result.errorMessage = 'ERROR';
-    return result;
-  }()),
-};
 
 module.exports = Result;

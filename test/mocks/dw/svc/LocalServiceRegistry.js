@@ -6,34 +6,36 @@ const HTTPService = require('./HTTPService');
 const SOAPService = require('./SOAPService');
 
 class LocalServiceRegistry {
-  static createService(serviceId, serviceCallback) {
+  static createService(serviceId, callbacks) {
     if (typeof serviceId !== 'string') {
       throw new TypeError('serviceId should be a string');
     }
 
-    if (serviceCallback === null || typeof serviceCallback !== 'object') {
-      throw new TypeError('serviceCallback should be an object');
+    if (callbacks === null || typeof callbacks !== 'object') {
+      throw new TypeError('callbacks should be an object');
     }
 
-    const lowerServiceId = serviceId.toLowerCase();
-
-    if (lowerServiceId.includes('http')) {
-      return new HTTPService(serviceId, serviceCallback);
+    if (serviceId.startsWith('http')) {
+      return new HTTPService(serviceId, callbacks);
     }
 
-    if (lowerServiceId.includes('soap')) {
-      return new SOAPService(serviceId, serviceCallback);
+    if (serviceId.startsWith('ftp')) {
+      return new FTPService(serviceId, callbacks, 'FTP');
     }
 
-    if (lowerServiceId.includes('ftp')) {
-      return new FTPService(serviceId, serviceCallback, 'ftp');
+    if (serviceId.startsWith('sftp')) {
+      return new FTPService(serviceId, callbacks, 'SFTP');
     }
 
-    if (lowerServiceId.includes('sftp')) {
-      return new FTPService(serviceId, serviceCallback, 'sftp');
+    if (serviceId.startsWith('soap')) {
+      return new SOAPService(serviceId, callbacks, 'SOAP');
     }
 
-    return new Service(serviceId, serviceCallback);
+    if (serviceId.startsWith('webdav')) {
+      return new Service(serviceId, callbacks, 'WEBDAV');
+    }
+
+    return new Service(serviceId, callbacks);
   }
 }
 

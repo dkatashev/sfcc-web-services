@@ -3,8 +3,9 @@
 const Service = require('./Service');
 
 class SOAPService extends Service {
-  constructor(serviceCallback) {
-    super(serviceCallback);
+  constructor(serviceId, callbacks, serviceType) {
+    super(serviceId, callbacks, serviceType);
+
     this.authentication = 'BASIC';
     this.serviceClient = {};
     this.client = this.serviceClient;
