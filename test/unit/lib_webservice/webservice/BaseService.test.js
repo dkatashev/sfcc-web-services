@@ -39,27 +39,38 @@ describe('scripts/webservice/BaseService', () => {
   });
 
   describe('#fetch()', () => {
-    it('should call _createService with alias and args', () => {
+    it('should call _createService with alias and return a successful result', () => {
       const result = TestService.fetch('alias', params);
 
       expect(result).to.be.instanceOf(MockResult);
       expect(result.ok).to.be.true;
     });
 
-    it('should call _createService with default alias and args when only args are provided', () => {
+    it('should call _createService with default alias and return a successful result', () => {
       const result = TestService.fetch(params);
 
       expect(result).to.be.instanceOf(MockResult);
       expect(result.ok).to.be.true;
     });
 
-    it('should handle exceptions and call _handleErrorResult', () => {
+    it('should handle exceptions and return an error result', () => {
       const error = new Error('_createService error');
 
       TestService = TestService.extend({
-        _createService: () => {
-          throw error;
-        }
+        createRequest: () => { throw error; }
+      });
+
+      const result = TestService.fetch();
+
+      expect(result).to.be.instanceOf(MockResult);
+      expect(result.ok).to.be.false;
+    });
+
+    it('should handle exceptions and return an object error result', () => {
+      const error = new Error('_createService error');
+
+      TestService = TestService.extend({
+        _createService: () => { throw error; }
       });
 
       const result = TestService.fetch();
@@ -154,7 +165,7 @@ describe('scripts/webservice/BaseService', () => {
   });
 
   describe('#_handleSuccessResult()', () => {
-    it('should return the original result', () => {
+    it('should return the original result for a successful operation', () => {
       const object = {};
       const result = new MockResult(MockResult.OK, object);
       const handledResult = TestService._handleSuccessResult(result);

@@ -17,7 +17,7 @@ const multipart = proxyquire('../../../../cartridges/lib_webservice/cartridge/sc
 
 describe('scripts/util/multipart', () => {
   describe('#parse()', () => {
-    it('should parse multipart body into parts with headers and body', () => {
+    it('should parse a single part with headers and body', () => {
       const boundary = 'WebKitFormBoundary7MA4YWxkTrZu0gW';
       const body = new MockBytes('--WebKitFormBoundary7MA4YWxkTrZu0gW\r\nContent-Type: text/plain\r\n\r\nhello world\r\n--WebKitFormBoundary7MA4YWxkTrZu0gW--');
       const parts = multipart.parse(boundary, body);
@@ -27,7 +27,7 @@ describe('scripts/util/multipart', () => {
       expect(parts[0].body.toString()).to.equal('hello world');
     });
 
-    it('should handle multiple parts', () => {
+    it('should parse multiple parts with different headers and bodies', () => {
       const boundary = 'boundary';
       const body = new MockBytes('--boundary\r\nContent-Type: text/plain\r\n\r\nPart1\r\n--boundary\r\nContent-Type: text/html\r\n\r\nPart2\r\n--boundary--');
       const parts = multipart.parse(boundary, body);
@@ -62,7 +62,7 @@ describe('scripts/util/multipart', () => {
       expect(parts[0].body.toString()).to.equal('Part1');
     });
 
-    it('should handle broken parts', () => {
+    it('should handle broken parts and return a null body', () => {
       const boundary = 'boundary';
       const body = new MockBytes('--boundary\r\n\r\nPart1\r\n--boundary--');
       const parts = multipart.parse(boundary, body);
@@ -74,7 +74,7 @@ describe('scripts/util/multipart', () => {
   });
 
   describe('#format()', () => {
-    it('should create a multipart body from parts', () => {
+    it('should create a multipart body from parts with headers and body', () => {
       const boundary = 'boundary';
       const parts = [
         {
@@ -93,7 +93,7 @@ describe('scripts/util/multipart', () => {
       expect(multipartBody).to.include('--boundary');
     });
 
-    it('should handle an empty parts array', () => {
+    it('should create a multipart body from an empty parts array', () => {
       const boundary = 'boundary';
       const parts = [];
       const multipartBody = multipart.format(boundary, parts);
@@ -101,7 +101,7 @@ describe('scripts/util/multipart', () => {
       expect(multipartBody).to.equal('--boundary--');
     });
 
-    it('should handle parts without headers', () => {
+    it('should create a multipart body from parts without headers', () => {
       const boundary = 'boundary';
       const parts = [
         {

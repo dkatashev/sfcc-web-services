@@ -1,7 +1,6 @@
 'use strict';
 
 const { expect } = require('chai');
-const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 
 const mocks = require('../../../mocks');
@@ -39,7 +38,7 @@ describe('scripts/webservice/SFTPService', () => {
       const client = TestService.initServiceClient(svc);
 
       expect(client).to.be.instanceOf(MockFTPClient);
-      sinon.assert.calledOnce(client.connect);
+      expect(client.connect.calledOnce).to.be.true;
     });
 
     it('should initialize an SFTP client correctly', () => {
@@ -48,7 +47,7 @@ describe('scripts/webservice/SFTPService', () => {
       const client = TestService.initServiceClient(svc);
 
       expect(client).to.be.instanceOf(MockSFTPClient);
-      sinon.assert.calledOnce(client.connect);
+      expect(client.connect.calledOnce).to.be.true;
     });
 
     it('should throw an error if the URL is invalid', () => {
@@ -73,13 +72,13 @@ describe('scripts/webservice/SFTPService', () => {
       TestService.execute(svc, params);
 
       expect(svc).to.be.instanceOf(MockFTPService);
-      sinon.assert.calledWith(svc.client.get, 'remotePath', 'localPath');
+      expect(svc.client.get.calledWith('remotePath', 'localPath')).to.be.true;
     });
 
     it('should execute multiple operations using callback', () => {
       const params = {
         onExecute: (svc) => {
-          var client = svc.client;
+          const client = svc.client;
 
           if (client.cd('path/to')) {
             return client.del('file.xml');
@@ -97,8 +96,8 @@ describe('scripts/webservice/SFTPService', () => {
 
       expect(svc).to.be.instanceOf(MockFTPService);
       expect(result).to.be.false;
-      sinon.assert.calledWith(svc.client.cd, 'path/to');
-      sinon.assert.calledWith(svc.client.del, 'file.xml');
+      expect(svc.client.cd.calledWith('path/to')).to.be.true;
+      expect(svc.client.del.calledWith('file.xml')).to.be.true;
     });
 
     it('should throw an error if no valid operation or callback is provided', () => {

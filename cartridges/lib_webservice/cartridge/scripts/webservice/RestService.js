@@ -1,13 +1,13 @@
 'use strict';
 
-/** @type {import('./BaseService')} */
-var BaseService = require('*/cartridge/scripts/webservice/BaseService');
-/** @type {import('../util/contentHeader')} */
-var contentHeader = require('*/cartridge/scripts/util/contentHeader');
-/** @type {import('../util/urlencoded')} */
-var urlencoded = require('*/cartridge/scripts/util/urlencoded');
 /** @type {import('../util/multipart')} */
 var multipart = require('*/cartridge/scripts/util/multipart');
+/** @type {import('../util/urlencoded')} */
+var urlencoded = require('*/cartridge/scripts/util/urlencoded');
+/** @type {import('../util/contentHeader')} */
+var contentHeader = require('*/cartridge/scripts/util/contentHeader');
+/** @type {import('./BaseService')} */
+var BaseService = require('*/cartridge/scripts/webservice/BaseService');
 
 /**
  * Represents a REST Service.

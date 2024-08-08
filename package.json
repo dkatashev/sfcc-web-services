@@ -6,7 +6,7 @@
   "description": "Salesforce Commerce Cloud - Web Service Library",
   "scripts": {
     "lint": "eslint cartridges/**",
-    "test": "nyc mocha test/unit/**/*.test.js"
+    "test": "nyc --reporter=text --reporter=html mocha test/unit/**/*.test.js"
   },
   "devDependencies": {
     "chai": "^4.5.0",

@@ -7,7 +7,7 @@ const headers = proxyquire('../../../../cartridges/lib_webservice/cartridge/scri
 
 describe('scripts/util/headers', () => {
   describe('#parse()', () => {
-    it('should correctly parse raw headers', () => {
+    it('should correctly parse raw headers into an object', () => {
       const rawHeaders = 'Content-Type: text/html\r\nContent-Length: 123';
       const result = headers.parse(rawHeaders);
 
@@ -15,14 +15,14 @@ describe('scripts/util/headers', () => {
       expect(result['content-length']).to.equal('123');
     });
 
-    it('should handle different line endings', () => {
+    it('should handle different line endings (CRLF and LF)', () => {
       const rawHeadersCRLF = 'Host: example.com\r\nConnection: keep-alive';
       const rawHeadersLF = 'Host: example.com\nConnection: keep-alive';
 
       expect(headers.parse(rawHeadersCRLF)).to.deep.equal(headers.parse(rawHeadersLF));
     });
 
-    it('should ignore lines without a colon', () => {
+    it('should ignore lines without a colon and exclude invalid headers', () => {
       const rawHeaders = 'Content-Type: text/html\nInvalidHeader\nContent-Length: 123';
       const result = headers.parse(rawHeaders);
 
@@ -33,13 +33,13 @@ describe('scripts/util/headers', () => {
       expect(result.invalidheader).to.be.undefined;
     });
 
-    it('should handle empty input', () => {
+    it('should return an empty object for empty input', () => {
       const result = headers.parse('');
 
       expect(result).to.deep.equal({});
     });
 
-    it('should handle headers with spaces around the colon', () => {
+    it('should handle headers with spaces around the colon correctly', () => {
       const rawHeaders = 'Content-Type : text/html\r\n Content-Length:123';
       const result = headers.parse(rawHeaders);
 
@@ -47,7 +47,7 @@ describe('scripts/util/headers', () => {
       expect(result['content-length']).to.equal('123');
     });
 
-    it('should handle headers with multiple colons', () => {
+    it('should handle headers with multiple colons correctly, treating everything after the first colon as the value', () => {
       const rawHeaders = 'X-Custom-Header: value:with:colons';
       const result = headers.parse(rawHeaders);
 
@@ -65,7 +65,7 @@ describe('scripts/util/headers', () => {
       expect(rawHeaders).to.equal('content-type: text/html\r\ncontent-length: 123');
     });
 
-    it('should handle an empty headers object', () => {
+    it('should handle an empty headers object and return an empty string', () => {
       const rawHeaders = headers.format({});
 
       expect(rawHeaders).to.equal('');

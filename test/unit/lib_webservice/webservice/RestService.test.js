@@ -65,9 +65,9 @@ describe('scripts/webservice/RestService', () => {
     svc.URL = svc.configuration.credential.URL;
   });
 
-  describe('#createRequest', () => {
+  describe('#createRequest()', () => {
     it('should handle GET method without a request body', () => {
-      const customParams = Object.assign({}, params, { method: 'GET' });
+      const customParams = { ...params, method: 'GET' };
       const result = RestService.createRequest(svc, customParams);
 
       expect(result).to.be.undefined;
@@ -83,34 +83,26 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should call custom onCreateRequest callback', () => {
-      const onCreateRequest = sinon.stub();
-      const customParams = Object.assign({}, params, {
-        onCreateRequest: onCreateRequest,
-      });
+      const customParams = { ...params, onCreateRequest: sinon.stub() };
 
       RestService.createRequest(svc, customParams);
 
-      sinon.assert.calledWith(onCreateRequest, customParams, svc, svc.configuration.credential);
+      expect(customParams.onCreateRequest.calledWith(customParams, svc, svc.configuration.credential)).to.be.true;
     });
 
-    it('should call custom getAuthentication callback and replace auth in args', () => {
+    it('should call custom getAuthentication callback and set Authorization header', () => {
       const auth = { type: 'Bearer', credentials: 'token' };
-      const customParams = Object.assign({}, params, {
-        auth: {},
-        getAuthentication: sinon.stub().returns(auth)
-      });
+      const customParams = { ...params, auth: {}, getAuthentication: sinon.stub().returns(auth) };
 
       TestService.createRequest(svc, customParams);
 
-      sinon.assert.calledOnce(customParams.getAuthentication);
+      expect(customParams.getAuthentication.calledOnce).to.be.true;
       expect(svc.authentication).to.equal('NONE');
       expect(svc.client.requestHeaders.get('Authorization')).to.equal('Bearer token');
     });
 
-    it('should set authorization header if auth is provided', () => {
-      const customParams = Object.assign({}, params, {
-        auth: { type: 'Bearer', credentials: 'token' },
-      });
+    it('should set Authorization header if auth is provided', () => {
+      const customParams = { ...params, auth: { type: 'Bearer', credentials: 'token' } };
 
       RestService.createRequest(svc, customParams);
 
@@ -119,12 +111,13 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should add other configurations to service', () => {
-      const customParams = Object.assign({}, params, {
+      const customParams = {
+        ...params,
         outFile: new MockFile('/IMPEX/test.json'),
         keyRef: new MockKeyRef('test'),
         encoding: 'ASCII',
         ttl: 1000,
-      });
+      };
 
       RestService.createRequest(svc, customParams);
 
@@ -178,10 +171,7 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should create an XML request body from XML object', () => {
-      const data = new XML();
-
-      data.xml = '<?xml version="1.0" encoding="UTF-8"?><node>Test</node>';
-
+      const data = new XML('<?xml version="1.0" encoding="UTF-8"?><node>Test</node>');
       const result = RestService._createRequestBody(svc, 'xml', data);
 
       expect(svc.client.requestHeaders.get('Content-Type')).to.equal('application/xml');
@@ -206,7 +196,7 @@ describe('scripts/webservice/RestService', () => {
       expect(() => RestService._createRequestBody(svc, 'multipart', parts)).to.throw(TypeError, errorMessage);
     });
 
-    it('should create a Mixed request body', () => {
+    it('should create a mixed request body', () => {
       const data = {
         boundary: 'boundary',
         parts: [

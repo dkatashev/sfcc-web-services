@@ -41,19 +41,25 @@ describe('scripts/util/ByteStream', () => {
     });
   });
 
-  describe('ByteStream()', () => {
+  describe('#constructor()', () => {
+    it('should initialize with a valid Bytes instance', () => {
+      expect(stream.source).to.be.instanceOf(MockBytes);
+      expect(stream.length).to.equal(source.length);
+      expect(stream.position).to.equal(0);
+    });
+
     it('should throw TypeError if source is not an instance of Bytes', () => {
       expect(() => new ByteStream('invalid')).to.throw(TypeError);
     });
   });
 
   describe('#eos()', () => {
-    it('should return true when at end of stream', () => {
+    it('should return true when end of stream is reached', () => {
       stream.position = source.length;
       expect(stream.eos()).to.be.true;
     });
 
-    it('should return false when not at end of stream', () => {
+    it('should return false when end of stream is not reached', () => {
       stream.position = 0;
       expect(stream.eos()).to.be.false;
     });
@@ -65,30 +71,30 @@ describe('scripts/util/ByteStream', () => {
       expect(stream.position).to.equal(5);
     });
 
-    it('should throw TypeError when offset is not a number', () => {
+    it('should throw TypeError if offset is not a number', () => {
       expect(() => stream.move(null)).to.throw(TypeError);
     });
 
-    it('should throw RangeError when moving position out of bounds', () => {
+    it('should throw RangeError if target index is out of bounds', () => {
       expect(() => stream.move(-1)).to.throw(RangeError);
       expect(() => stream.move(source.length + 1)).to.throw(RangeError);
     });
   });
 
   describe('#peek()', () => {
-    it('should peek at the correct byte without changing position', () => {
+    it('should peek at the next byte without moving the position', () => {
       expect(stream.peek()).to.equal(source.byteAt(0));
       expect(stream.position).to.equal(0);
     });
 
-    it('should throw when peeking out of bounds', () => {
+    it('should throw RangeError when peeking out of bounds', () => {
       stream.position = source.length; // Move to end
       expect(() => stream.peek()).to.throw();
     });
   });
 
   describe('#slice()', () => {
-    it('should slice the byte stream correctly', () => {
+    it('should return a slice of the byte stream from start to end indices', () => {
       const result = stream.slice(1, 3);
 
       expect(result).to.be.instanceof(MockBytes);
@@ -101,7 +107,7 @@ describe('scripts/util/ByteStream', () => {
       expect(result.length).to.equal(2);
     });
 
-    it('should handle end less than start correctly', () => {
+    it('should handle end index less than start index correctly', () => {
       const result = stream.slice(-1, -3);
 
       expect(result.length).to.equal(0);
@@ -122,11 +128,11 @@ describe('scripts/util/ByteStream', () => {
       expect(stream.readN(1)).to.be.null;
     });
 
-    it('should throw TypeError when n is not a number', () => {
+    it('should throw TypeError if n is not a number', () => {
       expect(() => stream.readN(null)).to.throw(TypeError);
     });
 
-    it('should throw TypeError when n less than 0', () => {
+    it('should throw TypeError if n is less than 0', () => {
       expect(() => stream.readN(-10)).to.throw(TypeError);
     });
   });
@@ -205,7 +211,7 @@ describe('scripts/util/ByteStream', () => {
       expect(byteStream.readUntil(sequence)).to.be.null;
     });
 
-    it('should throw TypeError when sequence is not instance of Bytes', () => {
+    it('should throw TypeError if sequence is not an instance of Bytes', () => {
       expect(() => stream.readUntil('string')).to.throw(TypeError);
     });
   });

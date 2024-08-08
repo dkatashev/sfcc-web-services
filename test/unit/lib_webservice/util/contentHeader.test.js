@@ -7,7 +7,7 @@ const contentHeader = proxyquire('../../../../cartridges/lib_webservice/cartridg
 
 describe('scripts/util/contentHeader', () => {
   describe('#parse()', () => {
-    it('should correctly parse Content-Type header', () => {
+    it('should correctly parse Content-Type header with multiple parameters', () => {
       const header = 'text/plain; charset=utf-8; format=flowed';
       const result = contentHeader.parse(header, 'type');
 
@@ -16,7 +16,7 @@ describe('scripts/util/contentHeader', () => {
       expect(result.params.format).to.equal('flowed');
     });
 
-    it('should correctly parse Content-Disposition header', () => {
+    it('should correctly parse Content-Disposition header with filename parameter', () => {
       const header = 'attachment; filename="file.txt"';
       const result = contentHeader.parse(header, 'disposition');
 
@@ -32,7 +32,7 @@ describe('scripts/util/contentHeader', () => {
       expect(result.params.charset).to.be.undefined;
     });
 
-    it('should handle incorrect Content-Type MIME', () => {
+    it('should handle incorrect Content-Type MIME gracefully', () => {
       const header = 'text';
       const result = contentHeader.parse(header);
 
@@ -64,7 +64,7 @@ describe('scripts/util/contentHeader', () => {
       expect(result.params.filename).to.equal('file name.txt');
     });
 
-    it('should handle parameters with escaped quotes', () => {
+    it('should handle parameters with escaped quotes correctly', () => {
       const header = 'text/plain; filename="file \\"name\\".txt"';
       const result = contentHeader.parse(header);
 
@@ -74,7 +74,7 @@ describe('scripts/util/contentHeader', () => {
   });
 
   describe('#format()', () => {
-    it('should format a content header from an object', () => {
+    it('should format a content header from an object with multiple parameters', () => {
       const headerString = contentHeader.format({
         type: 'text/plain',
         params: {
@@ -86,7 +86,7 @@ describe('scripts/util/contentHeader', () => {
       expect(headerString).to.equal('text/plain; charset=utf-8; format=flowed');
     });
 
-    it('should handle headers without parameters', () => {
+    it('should handle headers without parameters correctly', () => {
       const headerString = contentHeader.format({
         type: 'image/jpeg',
         params: {},
@@ -95,19 +95,19 @@ describe('scripts/util/contentHeader', () => {
       expect(headerString).to.equal('image/jpeg');
     });
 
-    it('should handle headers with multiple parameters', () => {
+    it('should format headers with multiple parameters correctly', () => {
       const headerString = contentHeader.format({
         type: 'multipart/form-data',
         params: {
-          boundary: '---123',
+          boundary: 'boundary',
           charset: 'utf-8'
         },
       });
 
-      expect(headerString).to.equal('multipart/form-data; boundary=---123; charset=utf-8');
+      expect(headerString).to.equal('multipart/form-data; boundary=boundary; charset=utf-8');
     });
 
-    it('should return empty string if type and params are not provided', () => {
+    it('should return an empty string if type and params are not provided', () => {
       const headerString = contentHeader.format({});
 
       expect(headerString).to.equal('');
@@ -130,7 +130,7 @@ describe('scripts/util/contentHeader', () => {
       expect(headerString).to.equal('application/json');
     });
 
-    it('should handle parameters with special characters', () => {
+    it('should handle parameters with special characters correctly', () => {
       const headerString = contentHeader.format({
         type: 'text/plain',
         params: {

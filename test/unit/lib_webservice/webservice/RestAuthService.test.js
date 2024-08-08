@@ -64,10 +64,7 @@ describe('scripts/webservice/RestAuthService', () => {
 
   describe('#authorize()', () => {
     it('should perform authorization using the auth service action', () => {
-      const object = {
-        token_type: 'Bearer',
-        access_token: 'token'
-      };
+      const object = { token_type: 'Bearer', access_token: 'token' };
       const params = {
         method: 'POST',
         dataType: 'form',

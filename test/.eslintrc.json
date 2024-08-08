@@ -3,6 +3,9 @@
     "es6": true,
     "mocha": true
   },
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
   "rules": {
     "require-jsdoc": "off",
     "max-len": "off",
