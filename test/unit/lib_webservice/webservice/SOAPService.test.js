@@ -32,6 +32,14 @@ const SOAPService = proxyquire('../../../../cartridges/lib_webservice/cartridge/
 
 describe('scripts/webservice/SOAPService', () => {
   let TestService;
+  let svc;
+
+  const defaultParams = {
+    webReference: 'MyWebReference',
+    operation: 'myOperation',
+    createRequestPayload: (s, webReference) => new webReference.TestRequest(),
+    parseResponsePayload: (s, responsePayload) => responsePayload,
+  };
 
   beforeEach(() => {
     TestService = SOAPService.extend({
@@ -39,6 +47,8 @@ describe('scripts/webservice/SOAPService', () => {
         default: 'soap.service',
       },
     });
+    svc = TestService._createService('default', {});
+    MockWSUtil._stub();
   });
 
   afterEach(() => {
@@ -46,103 +56,163 @@ describe('scripts/webservice/SOAPService', () => {
   });
 
   describe('#createRequest()', () => {
-    it('should create a SOAP request and set headers, properties, and security config', () => {
+    it('should create a request payload correctly', () => {
+      const params = { ...defaultParams };
+      const payload = TestService.createRequest(svc, params);
+
+      expect(svc).to.be.instanceOf(MockSOAPService);
+      expect(payload).to.be.instanceOf(global.webreferences2.MyWebReference.TestRequest);
+    });
+
+    it('should set SOAP headers and HTTP headers correctly', () => {
       const params = {
-        webReference: 'MyWebReference',
-        operation: 'myOperation',
+        ...defaultParams,
         service: { name: 'myService', port: 'myPort' },
         soapHeaders: [{ header: '<header>', mustUnderstand: true, actor: 'uri' }],
         httpHeaders: { 'Content-Type': 'application/soap+xml' },
-        securityConfig: { requestConfigMap: new MockHashMap(), responseConfigMap: new MockHashMap() },
-        properties: { encoding: 'UTF-8', session: true, unknown: 'unknown' },
-        getRequest: (svc, webReference) => {
-          const request = new webReference.TestRequest();
-          return request;
-        }
       };
-      const svc = TestService._createService('default', params);
 
       TestService.createRequest(svc, params);
 
-      expect(svc.webReference).to.equal(webreferences2.MyWebReference);
-      expect(svc.webReferencePort).to.equal(webreferences2.MyWebReference.getService(params.service.name, params.service.port));
-      expect(svc.operation).to.equal(params.operation);
-      expect(svc.serviceClient).to.equal(svc.webReferencePort);
       expect(MockWSUtil.addSOAPHeader.calledWith(svc.serviceClient, '<header>', true, 'uri')).to.be.true;
       expect(MockWSUtil.setHTTPRequestHeader.calledWith(svc.serviceClient, 'Content-Type', 'application/soap+xml')).to.be.true;
-      expect(MockWSUtil.setWSSecurityConfig.calledWith(svc.serviceClient, params.securityConfig.requestConfigMap, params.securityConfig.requestConfigMap)).to.be.true;
-      expect(MockWSUtil.setProperty.calledWith(MockPort.ENCODING, params.properties.encoding, svc.serviceClient)).to.be.true;
-      expect(MockWSUtil.setProperty.calledWith(MockPort.SESSION_MAINTAIN_PROPERTY, params.properties.session, svc.serviceClient)).to.be.true;
-      expect(svc.webReference.TestRequest.calledWithNew()).to.be.true;
     });
 
-    it('should call onCreateRequest callback if provided', () => {
+    it('should set property configurations correctly', () => {
       const params = {
-        webReference: 'MyWebReference',
-        operation: 'myOperation',
+        ...defaultParams,
+        service: { name: 'myService', port: 'myPort' },
+        properties: {
+          encoding: 'UTF-8',
+          endpoint: 'test',
+          session: true,
+          username: 'username',
+          password: 'password',
+          unknown: 'unknown'
+        },
+      };
+
+      TestService.createRequest(svc, params);
+
+      expect(
+        MockWSUtil.setProperty.calledWith(
+          MockPort.ENCODING,
+          params.properties.encoding,
+          svc.serviceClient,
+        ),
+      ).to.be.true;
+      expect(
+        MockWSUtil.setProperty.calledWith(
+          MockPort.ENDPOINT_ADDRESS_PROPERTY,
+          params.properties.endpoint,
+          svc.serviceClient,
+        ),
+      ).to.be.true;
+      expect(
+        MockWSUtil.setProperty.calledWith(
+          MockPort.SESSION_MAINTAIN_PROPERTY,
+          params.properties.session,
+          svc.serviceClient,
+        ),
+      ).to.be.true;
+      expect(
+        MockWSUtil.setProperty.calledWith(
+          MockPort.USERNAME_PROPERTY,
+          params.properties.username,
+          svc.serviceClient,
+        ),
+      ).to.be.true;
+      expect(
+        MockWSUtil.setProperty.calledWith(
+          MockPort.PASSWORD_PROPERTY,
+          params.properties.password,
+          svc.serviceClient,
+        ),
+      ).to.be.true;
+    });
+
+    it('should set security configurations correctly', () => {
+      const params = {
+        ...defaultParams,
+        securityConfig: {
+          requestConfigMap: new MockHashMap(),
+          responseConfigMap: new MockHashMap(),
+        },
+      };
+
+      TestService.createRequest(svc, params);
+
+      expect(
+        MockWSUtil.setWSSecurityConfig.calledWith(
+          svc.serviceClient,
+          params.securityConfig.requestConfigMap,
+          params.securityConfig.responseConfigMap
+        )
+      ).to.be.true;
+    });
+
+    it('should call onCreateRequest if provided', () => {
+      const params = {
+        ...defaultParams,
         onCreateRequest: sinon.stub(),
-        getRequest: sinon.stub().returns('requestObject')
       };
-      const svc = TestService._createService('default', params);
 
       TestService.createRequest(svc, params);
 
-      expect(params.onCreateRequest.calledOnceWith(params, svc)).to.be.true;
-    });
-
-    it('should use defaultService if no service is provided', () => {
-      const params = {
-        webReference: 'MyWebReference',
-        operation: 'myOperation',
-        getRequest: sinon.stub().returns('requestObject')
-      };
-      const svc = TestService._createService('default', params);
-
-      TestService.createRequest(svc, params);
-
-      expect(svc.webReferencePort).to.equal(webreferences2.MyWebReference.defaultService);
-    });
-
-    it('should handle default case in createRequest', () => {
-      const params = {
-        webReference: 'MyWebReference',
-        operation: 'myOperation',
-        getRequest: sinon.stub().returns('requestObject')
-      };
-      const svc = TestService._createService('default', params);
-
-      TestService.createRequest(svc, params);
-
-      expect(svc).to.be.instanceOf(MockSOAPService);
+      expect(params.onCreateRequest.calledOnce).to.be.true;
     });
   });
 
   describe('#execute()', () => {
-    it('should execute the SOAP service request', () => {
+    it('should execute the service operation correctly', () => {
       const params = {
-        webReference: 'MyWebReference',
-        operation: 'myOperation',
-        getRequest: sinon.stub().returns('requestObject')
+        ...defaultParams,
+        createRequestPayload: sinon.stub().returns('requestPayload'),
       };
-      const svc = TestService._createService('default', params);
-      const port = webreferences2.MyWebReference.defaultService;
+      const request = TestService.createRequest(svc, params);
+      svc.serviceClient[params.operation].returns('responsePayload');
+      const response = TestService.execute(svc, request);
 
-      TestService.createRequest(svc, params);
-      port[params.operation].returns('response');
+      expect(svc.serviceClient.myOperation.calledOnce).to.be.true;
+      expect(response).to.equal('responsePayload');
+    });
 
-      const response = TestService.execute(svc, 'requestObject');
+    it('should call executeRequest if provided', () => {
+      const params = {
+        ...defaultParams,
+        executeRequest: sinon.stub().returns('customResponse'),
+      };
+      const request = TestService.createRequest(svc, params);
+      svc.serviceClient[params.operation].returns('responsePayload');
+      const response = TestService.execute(svc, request);
 
-      expect(response).to.equal('response');
-      expect(svc.serviceClient.myOperation.calledWith('requestObject')).to.be.true;
+      expect(params.executeRequest.calledOnce).to.be.true;
+      expect(response).to.equal('customResponse');
     });
   });
 
   describe('#parseResponse()', () => {
-    it('should parse the SOAP service response', () => {
-      const responseObject = 'responseObject';
-      const parsedResponse = TestService.parseResponse(null, responseObject);
+    it('should parse the response payload correctly using parseResponsePayload', () => {
+      const params = {
+        ...defaultParams,
+        parseResponsePayload: sinon.stub().returns('parsedResponse'),
+      };
+      TestService.createRequest(svc, params);
+      const response = TestService.parseResponse(svc, 'responsePayload');
 
-      expect(parsedResponse).to.equal(responseObject);
+      expect(params.parseResponsePayload.calledWith(svc, 'responsePayload')).to.be.true;
+      expect(response).to.equal('parsedResponse');
+    });
+
+    it('should return the original response payload if parseResponsePayload is not provided', () => {
+      const params = {
+        ...defaultParams,
+        parseResponsePayload: undefined,
+      };
+      TestService.createRequest(svc, params);
+      const response = TestService.parseResponse(svc, 'responsePayload');
+
+      expect(response).to.equal('responsePayload');
     });
   });
 });

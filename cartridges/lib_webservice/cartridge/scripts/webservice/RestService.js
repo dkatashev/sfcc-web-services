@@ -31,7 +31,7 @@ var RestService = BaseService.extend({
 
     // Extract credential and URL
     var credential = this._getServiceCredential(svc, args);
-    var url = credential.getURL();
+    var url = credential.URL;
 
     // Could be used to inject custom logic per call
     if (typeof args.onCreateRequest === 'function') {

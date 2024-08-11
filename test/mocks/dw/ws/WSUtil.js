@@ -66,6 +66,25 @@ class WSUtil {
   static setWSSecurityConfig() {
     // Mock implementation
   }
+
+  static _stub() {
+    sinon.stub(WSUtil, 'addSOAPHeader');
+    sinon.stub(WSUtil, 'clearSOAPHeaders');
+    sinon.stub(WSUtil, 'createHolder');
+    sinon.stub(WSUtil, 'getConnectionTimeout');
+    sinon.stub(WSUtil, 'getHTTPRequestHeader');
+    sinon.stub(WSUtil, 'getProperty');
+    sinon.stub(WSUtil, 'getRequestTimeout');
+    sinon.stub(WSUtil, 'getResponseProperty');
+    sinon.stub(WSUtil, 'isAllowChunking');
+    sinon.stub(WSUtil, 'setAllowChunking');
+    sinon.stub(WSUtil, 'setConnectionTimeout');
+    sinon.stub(WSUtil, 'setHTTPRequestHeader');
+    sinon.stub(WSUtil, 'setProperty');
+    sinon.stub(WSUtil, 'setRequestTimeout');
+    sinon.stub(WSUtil, 'setUserNamePassword');
+    sinon.stub(WSUtil, 'setWSSecurityConfig');
+  }
 }
 
 WSUtil.KEY_ID_TYPE_DIRECT_REFERENCE = 'DirectReference';
@@ -98,23 +117,5 @@ WSUtil.WS_SIGNATURE_USER = 'signatureUser';
 WSUtil.WS_TIMESTAMP = 'Timestamp';
 WSUtil.WS_USER = 'user';
 WSUtil.WS_USERNAME_TOKEN = 'UsernameToken';
-
-// Stubbing methods with sinon
-sinon.stub(WSUtil, 'addSOAPHeader');
-sinon.stub(WSUtil, 'clearSOAPHeaders');
-sinon.stub(WSUtil, 'createHolder');
-sinon.stub(WSUtil, 'getConnectionTimeout');
-sinon.stub(WSUtil, 'getHTTPRequestHeader');
-sinon.stub(WSUtil, 'getProperty');
-sinon.stub(WSUtil, 'getRequestTimeout');
-sinon.stub(WSUtil, 'getResponseProperty');
-sinon.stub(WSUtil, 'isAllowChunking');
-sinon.stub(WSUtil, 'setAllowChunking');
-sinon.stub(WSUtil, 'setConnectionTimeout');
-sinon.stub(WSUtil, 'setHTTPRequestHeader');
-sinon.stub(WSUtil, 'setProperty');
-sinon.stub(WSUtil, 'setRequestTimeout');
-sinon.stub(WSUtil, 'setUserNamePassword');
-sinon.stub(WSUtil, 'setWSSecurityConfig');
 
 module.exports = WSUtil;

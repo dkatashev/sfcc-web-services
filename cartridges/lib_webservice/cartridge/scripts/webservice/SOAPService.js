@@ -1,5 +1,6 @@
 'use strict';
 
+var Port = require('dw/ws/Port');
 var WSUtil = require('dw/ws/WSUtil');
 
 /** @type {import('./BaseService')} */
@@ -9,6 +10,14 @@ var BaseService = require('*/cartridge/scripts/webservice/BaseService');
  * Represents a SOAP Service.
  */
 var SOAPService = BaseService.extend({
+  PROPERTY_MAPPING: {
+    encoding: Port.ENCODING,
+    endpoint: Port.ENDPOINT_ADDRESS_PROPERTY,
+    session: Port.SESSION_MAINTAIN_PROPERTY,
+    username: Port.USERNAME_PROPERTY,
+    password: Port.PASSWORD_PROPERTY,
+  },
+
   /**
    * Creates a SOAP request based on the provided parameters.
    *
@@ -17,117 +26,125 @@ var SOAPService = BaseService.extend({
    * @returns {*} The SOAP request.
    */
   createRequest: function (svc, params) {
-    if (typeof params.onCreateRequest === 'function') {
-      params.onCreateRequest(params, svc);
+    var credential = this._getServiceCredential(svc);
+    var args = Object.assign({
+      soapHeaders: [],
+      httpHeaders: {},
+      securityConfig: {},
+      properties: {},
+    }, params);
+
+    this._initializeService(svc, args);
+
+    if (typeof args.onCreateRequest === 'function') {
+      args.onCreateRequest(args, svc, credential);
     }
 
-    svc.webReference = webreferences2[params.webReference];
-    svc.webReferencePort = params.service
-      ? svc.webReference.getService(params.service.name, params.service.port)
-      : svc.webReference.defaultService;
-    svc.operation = params.operation;
-    svc.setServiceClient(svc.webReferencePort);
+    this._configureService(svc, args);
 
-    this._addSOAPHeaders(svc, params.soapHeaders);
-    this._setHTTPHeaders(svc, params.httpHeaders);
-    this._setWSSecurityConfig(svc, params.securityConfig);
-    this._setProperties(svc, params.properties);
+    return args.createRequestPayload(svc, svc.webReference);
+  },
 
-    var request = params.getRequest(svc, svc.webReference);
+  /**
+   * Initializes the service with basic configurations.
+   *
+   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
+   * @param {SOAPParams} args - The SOAP parameters.
+   * @protected
+   */
+  _initializeService: function (svc, args) {
+    var webReference = webreferences2[args.webReference];
+    var webReferencePort;
 
-    return request;
+    if (args.service) {
+      webReferencePort = webReference.getService(args.service.name, args.service.port);
+    } else {
+      webReferencePort = webReference.defaultService;
+    }
+
+    svc.webReference = webReference;
+    svc.setServiceClient(webReferencePort);
+    svc.operation = args.operation;
+    svc.executeRequest = args.executeRequest;
+    svc.parseResponsePayload = args.parseResponsePayload;
+  },
+
+  /**
+   * Sets the configurations for the service.
+   *
+   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
+   * @param {SOAPParams} args - The SOAP parameters.
+   * @protected
+   */
+  _configureService: function (svc, args) {
+    var self = this;
+
+    args.soapHeaders.forEach(function (soapHeader) {
+      WSUtil.addSOAPHeader(
+        svc.serviceClient,
+        soapHeader.header,
+        soapHeader.mustUnderstand,
+        soapHeader.actor
+      );
+    });
+
+    Object.keys(args.httpHeaders).forEach(function (header) {
+      WSUtil.setHTTPRequestHeader(
+        svc.serviceClient,
+        header,
+        args.httpHeaders[header]
+      );
+    });
+
+    if (args.securityConfig.requestConfigMap && args.securityConfig.responseConfigMap) {
+      WSUtil.setWSSecurityConfig(
+        svc.serviceClient,
+        args.securityConfig.requestConfigMap,
+        args.securityConfig.responseConfigMap
+      );
+    }
+
+    Object.keys(args.properties).forEach(function (property) {
+      if (self.PROPERTY_MAPPING[property]) {
+        WSUtil.setProperty(
+          self.PROPERTY_MAPPING[property],
+          args.properties[property],
+          svc.serviceClient
+        );
+      }
+    });
   },
 
   /**
    * Executes the SOAP service request.
    *
    * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {*} requestObject - The request object.
-   * @returns {*} The response object.
+   * @param {Object} requestPayload - The request object.
+   * @returns {Object} The response object.
    */
-  execute: function (svc, requestObject) {
-    return svc.serviceClient[svc.operation](requestObject);
+  execute: function (svc, requestPayload) {
+    if (typeof svc.executeRequest === 'function') {
+      return svc.executeRequest(svc, requestPayload);
+    }
+
+    var method = svc.serviceClient[svc.operation];
+    return method.call(svc.serviceClient, requestPayload);
   },
 
   /**
    * Parses the SOAP service response.
    *
    * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {*} responseObject - The response object.
-   * @returns {*} The parsed response.
+   * @param {Object} responsePayload - The response object.
+   * @returns {Object} The parsed response.
    */
-  parseResponse: function (svc, responseObject) {
-    return responseObject;
-  },
-
-  /**
-   * Adds SOAP headers to the request.
-   *
-   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {SOAPHeader[]} soapHeaders - The SOAP headers collection.
-   * @protected
-   */
-  _addSOAPHeaders: function (svc, soapHeaders) {
-    if (Array.isArray(soapHeaders)) {
-      soapHeaders.forEach(function (soapHeader) {
-        WSUtil.addSOAPHeader(svc.serviceClient, soapHeader.header, soapHeader.mustUnderstand, soapHeader.actor);
-      });
+  parseResponse: function (svc, responsePayload) {
+    if (typeof svc.parseResponsePayload === 'function') {
+      return svc.parseResponsePayload(svc, responsePayload);
     }
-  },
 
-  /**
-   * Sets HTTP headers for the request.
-   *
-   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {Object.<string,string>} httpHeaders - The HTTP headers object.
-   * @protected
-   */
-  _setHTTPHeaders: function (svc, httpHeaders) {
-    if (httpHeaders !== null && typeof httpHeaders === 'object') {
-      Object.keys(httpHeaders).forEach(function (header) {
-        WSUtil.setHTTPRequestHeader(svc.serviceClient, header, httpHeaders[header]);
-      });
-    }
-  },
-
-  /**
-   * Sets WS-Security configuration for the request.
-   *
-   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {SecurityConfig} securityConfig - The security configuration.
-   * @protected
-   */
-  _setWSSecurityConfig: function (svc, securityConfig) {
-    if (securityConfig && securityConfig.requestConfigMap && securityConfig.responseConfigMap) {
-      WSUtil.setWSSecurityConfig(svc.serviceClient, securityConfig.requestConfigMap, securityConfig.responseConfigMap);
-    }
-  },
-
-  /**
-   * Sets SOAP properties for the request.
-   *
-   * @param {dw.svc.SOAPService} svc - The SOAP service instance.
-   * @param {SOAPProperties} properties - The SOAP properties.
-   * @protected
-   */
-  _setProperties: function (svc, properties) {
-    var Port = require('dw/ws/Port');
-
-    if (properties !== null && typeof properties === 'object') {
-      Object.keys(properties).forEach(function (property) {
-        switch (property) {
-          case 'encoding':
-            WSUtil.setProperty(Port.ENCODING, properties[property], svc.serviceClient);
-            break;
-          case 'session':
-            WSUtil.setProperty(Port.SESSION_MAINTAIN_PROPERTY, properties[property], svc.serviceClient);
-            break;
-          default:
-            break;
-        }
-      });
-    }
-  },
+    return responsePayload;
+  }
 });
 
 /**
@@ -148,10 +165,26 @@ var SOAPService = BaseService.extend({
  */
 
 /**
- * Callback function for the creation of the SOAP request.
- * @callback getRequest
+ * Callback function for the creation of the SOAP request payload.
+ * @callback createRequestPayload
  * @param {dw.svc.SOAPService} svc - The SOAP service instance.
  * @param {dw.ws.WebReference2} webReference - The WebReference object.
+ * @returns {Object}
+ */
+
+/**
+ * Callback function for the execution of the SOAP request.
+ * @callback executeRequest
+ * @param {dw.svc.SOAPService} svc - The SOAP service instance.
+ * @param {Object} requestPayload - The SOAP request object.
+ * @returns {Object}
+ */
+
+/**
+ * Callback function for the parsing of the SOAP response payload.
+ * @callback parseResponsePayload
+ * @param {dw.svc.SOAPService} svc - The SOAP service instance.
+ * @param {Object} responseObject - The SOAP response object.
  * @returns {Object}
  */
 
@@ -163,12 +196,14 @@ var SOAPService = BaseService.extend({
  * @property {string} service.name - The service name.
  * @property {string} service.port - The service port.
  * @property {string} operation - The SOAP operation.
+ * @property {createRequestPayload} createRequestPayload - Create request payload callback.
+ * @property {executeRequest} [executeRequest] - Execute request callback.
+ * @property {parseResponsePayload} [parseResponsePayload] - Parse response payload callback.
+ * @property {onCreateRequest} [onCreateRequest] - Custom request creation callback.
  * @property {SOAPHeader[]} [soapHeaders] - An array of SOAP headers.
  * @property {Object.<string,string>} [httpHeaders] - HTTP headers.
  * @property {SecurityConfig} [securityConfig] - Security configuration.
  * @property {SOAPProperties} [properties] - SOAP properties.
- * @property {onCreateRequest} [onCreateRequest] - Custom request creation callback.
- * @property {getRequest} getRequest - Get request callback.
  */
 
 /**
@@ -181,8 +216,11 @@ var SOAPService = BaseService.extend({
 /**
  * Represents SOAP properties.
  * @typedef {Object} SOAPProperties
- * @property {dw.util.HashMap} encoding - The encoding.
- * @property {dw.util.HashMap} session - Session flag.
- */
+ * @property {string} encoding - The encoding.
+ * @property {string} endpoint - The target service endpoint address.
+ * @property {boolean} session - Session flag.
+ * @property {boolean} username - Username flag.
+ * @property {boolean} password - Password flag.
+*/
 
 module.exports = SOAPService;

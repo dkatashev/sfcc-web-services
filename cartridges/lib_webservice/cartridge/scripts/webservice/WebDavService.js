@@ -1,5 +1,7 @@
 'use strict';
 
+/** @type {import('../util/urlencoded')} */
+var urlencoded = require('*/cartridge/scripts/util/urlencoded');
 /** @type {import('./BaseService')} */
 var BaseService = require('*/cartridge/scripts/webservice/BaseService');
 
@@ -18,26 +20,20 @@ var WebDavService = BaseService.extend({
     var WebDAVClient = require('dw/net/WebDAVClient');
 
     var credential = this._getServiceCredential(svc, params);
-    var url = credential.getURL();
-    var defaults = {
+    var url = credential.URL;
+    var args = Object.assign({
       headers: {},
       pathPatterns: {},
-    };
-    var args = Object.assign(defaults, params);
+      queryParams: {},
+    }, params);
 
     // Could be used to inject custom logic per call
     if (typeof args.onCreateRequest === 'function') {
       args.onCreateRequest(args, svc, credential);
     }
 
-    /**
-     * @description Replace path pattern with values
-     * @example https://test.com/:testParam
-     */
-    Object.keys(args.pathPatterns).forEach(function (pathParam) {
-      url = url.replace(new RegExp(':' + pathParam), args.pathPatterns[pathParam]);
-    });
-
+    // Build the complete URL with path and query parameters
+    url = this._buildCompleteUrl(url, args);
     svc.setURL(url);
 
     /**
@@ -50,14 +46,14 @@ var WebDavService = BaseService.extend({
     }
 
     /**
-     * @description Add header to request
-     * @example Accept: application/json
+     * Add header to request
+     * For example Accept: application/json
      */
     Object.keys(args.headers).forEach(function (header) {
       svc.client.addRequestHeader(header, args.headers[header]);
     });
 
-    return params;
+    return args;
   },
 
   /**
@@ -72,34 +68,19 @@ var WebDavService = BaseService.extend({
     var client = svc.client;
     var result;
 
-    /**
-     * Useful for a single operation, such as download file
-     */
-    if (params.operation && params.args) {
-      try {
+    try {
+      if (params.operation && params.args) {
         result = client[params.operation].apply(client, params.args);
-      } finally {
-        client.close();
-      }
-
-      return result;
-    }
-
-    /**
-     * Useful to make multiple operations
-     */
-    if (typeof params.onExecute === 'function') {
-      try {
+      } else if (typeof params.onExecute === 'function') {
         result = params.onExecute(svc);
-      } finally {
-        client.close();
+      } else {
+        throw new Error('No valid operation or callback provided.');
       }
-
-      return result;
+    } finally {
+      client.close();
     }
 
-    client.close();
-    throw new Error('No valid operation or callback provided.');
+    return result;
   },
 
   /**
@@ -112,23 +93,55 @@ var WebDavService = BaseService.extend({
   parseResponse: function (svc, response) {
     var client = svc.client;
 
-    /**
-     * Handle WebDAV call failure
-     */
-    if (!client.succeeded()) {
-      var error = new Error(client.statusText);
+    try {
+      if (!client.succeeded()) {
+        throw new Error(client.statusText);
+      }
+
+      return response;
+    } finally {
       client.close();
-      throw error;
+    }
+  },
+
+  /**
+   * Complete a URL with replaced path patterns and appended query parameters.
+   *
+   * @param {string} url - The base URL.
+   * @param {Object} params - The parameters containing path patterns and query parameters.
+   * @param {Object.<string, string>} params.pathPatterns - The parameters containing path patterns.
+   * @param {Object.<string, string>} params.queryParams - The parameters containing query parameters.
+   * @returns {string} The complete URL.
+   */
+  _buildCompleteUrl: function (url, params) {
+    // Replace path patterns
+    Object.keys(params.pathPatterns).forEach(function (pathParam) {
+      url = url.replace(new RegExp(':' + pathParam), params.pathPatterns[pathParam]);
+    });
+
+    // Extract existing query string from URL
+    var queryStringIndex = url.indexOf('?');
+    var currentQueryString = queryStringIndex > -1 ? url.substring(queryStringIndex + 1) : '';
+
+    // Parse existing query string and merge with new query parameters
+    var currentQueryParams = urlencoded.parse(currentQueryString);
+    var mergedQueryParams = Object.assign(currentQueryParams, params.queryParams);
+
+    // Generate new query string
+    var queryString = urlencoded.format(mergedQueryParams);
+
+    // Reconstruct URL with new query string
+    if (queryString) {
+      var urlWithoutQueryString = queryStringIndex > -1 ? url.substring(0, queryStringIndex) : url;
+      url = urlWithoutQueryString + '?' + queryString;
     }
 
-    client.close();
-
-    return response;
+    return url;
   },
 });
 
 /**
- * @typedef {dw.svc.Service & {client: dw.svc.WebDAVClient}} WebDAVService
+ * @typedef {dw.svc.Service & {client: dw.net.WebDAVClient}} WebDAVService
  */
 
 /**
@@ -151,6 +164,7 @@ var WebDavService = BaseService.extend({
  * Represents parameters for the WebDAV service.
  * @typedef {Object} WebdavParams
  * @property {Object.<string,string>} [pathPatterns] - Patterns to replace in the URL.
+ * @property {Object.<string,string>} [queryParams] - The query parameters.
  * @property {Object.<string,string>} [headers] - Headers for the request.
  * @property {'copy'|'del'|'get'|'getBinary'|'mkcol'|'move'|'options'|'propfind'|'put'} [operation] - The WebDAV operation to be executed.
  * @property {*[]} [args] - The arguments for the operation.
