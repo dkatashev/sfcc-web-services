@@ -1,5 +1,7 @@
 # SFCC Web Service Library
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/42511c557f8e489b9730edf69c6bfdd9)](https://app.codacy.com/gh/dkatashev/sfcc-web-services?utm_source=github.com&utm_medium=referral&utm_content=dkatashev/sfcc-web-services&utm_campaign=Badge_Grade)
+
 Welcome to the **SFCC Web Service Library**! This library is designed to accelerate the development of web services on the Salesforce Commerce Cloud (SFCC) platform. Whether you need to integrate RESTful APIs, SOAP services, SFTP, WebDAV functionalities, this library provides a robust framework that simplifies and streamlines the process.
 
 ## Key Features
