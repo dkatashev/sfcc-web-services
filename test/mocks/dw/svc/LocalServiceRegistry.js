@@ -28,7 +28,7 @@ class LocalServiceRegistry {
     }
 
     if (serviceId.startsWith('soap')) {
-      return new SOAPService(serviceId, callbacks, 'SOAP');
+      return new SOAPService(serviceId, callbacks);
     }
 
     if (serviceId.startsWith('webdav')) {

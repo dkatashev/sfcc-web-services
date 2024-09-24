@@ -1,13 +1,13 @@
 'use strict';
 
 class WebDAVFileInfo {
-  constructor() {
+  constructor(name = '', path = '', directory = false) {
     this.contentType = '';
     this.creationDate = new Date();
     this.lastModifiedDate = new Date();
-    this.directory = false;
-    this.name = 'name';
-    this.path = 'path';
+    this.directory = directory;
+    this.name = name;
+    this.path = path;
     this.size = 0;
   }
 

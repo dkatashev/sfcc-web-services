@@ -49,7 +49,7 @@ class Encoding {
     }
 
     const str = Buffer.from(string, encoding).toString();
-    return encodeURIComponent(str).toString().replace(/%20/g, '+').replace(/[!'()]/g, function (c) {
+    return encodeURIComponent(str).replace(/%20/g, '+').replace(/[!'()]/g, function (c) {
       return '%' + c.charCodeAt(0).toString(16);
     });
   }

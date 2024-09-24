@@ -3,11 +3,10 @@
 const Iterator = require('./Iterator');
 
 class Collection {
-  constructor() {
+  constructor(array = []) {
+    this.array = array;
+
     Object.defineProperties(this, {
-      array: {
-        value: []
-      },
       empty: {
         get() {
           return Boolean(this.array.length);

@@ -4,7 +4,7 @@ const DwMap = require('./Map');
 
 class HashMap extends DwMap {
   clone() {
-    return new HashMap(this.map);
+    return new HashMap(new Map(this.map));
   }
 }
 

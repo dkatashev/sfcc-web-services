@@ -3,7 +3,7 @@
 const sinon = require('sinon');
 
 class Port {
-  constructor(operations) {
+  constructor(operations = []) {
     operations.forEach((operation) => {
       this[operation] = sinon.stub();
     });

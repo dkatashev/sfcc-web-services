@@ -1,9 +1,9 @@
 'use strict';
 
 class MapEntry {
-  constructor() {
-    this.key = '';
-    this.value = null;
+  constructor(key, value) {
+    this.key = key;
+    this.value = value;
   }
 
   getKey() {

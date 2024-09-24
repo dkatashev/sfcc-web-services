@@ -7,7 +7,8 @@ class Iterator {
   }
 
   asList(start = 0, size = this.array.length) {
-    return this.array(start, size);
+    const List = require('./List');
+    return new List(this.array.slice(start, size));
   }
 
   hasNext() {

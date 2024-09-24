@@ -5,10 +5,9 @@ const MapEntry = require('./MapEntry');
 
 class DwMap {
   constructor(map = new Map()) {
+    this.map = map;
+
     Object.defineProperties(this, {
-      map: {
-        value: map
-      },
       empty: {
         get() {
           return Boolean(this.map.size);
@@ -39,17 +38,10 @@ class DwMap {
     const set = new DwSet();
 
     Array.from(this.map.entries()).forEach(([key, value]) => {
-      const mapEntry = new MapEntry();
-      mapEntry.key = key;
-      mapEntry.value = value;
-      set.add(mapEntry);
+      set.add(new MapEntry(key, value));
     });
 
     return set;
-  }
-
-  get(key) {
-    return this.map.get(key);
   }
 
   get(key) {

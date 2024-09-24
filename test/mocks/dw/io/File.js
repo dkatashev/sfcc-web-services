@@ -4,7 +4,7 @@ const { posix: path } = require('path');
 const Bytes = require('../util/Bytes');
 
 class File {
-  constructor(rootDir, relPath) {
+  constructor(rootDir, relPath, fileContent = '') {
     if (typeof rootDir === 'string') {
       this.fullPath = path.normalize(rootDir);
     } else if (rootDir instanceof File && typeof relPath === 'string') {
@@ -19,7 +19,7 @@ class File {
     this.directory = this.fullPath.endsWith(File.SEPARATOR);
     this.file = !this.directory;
     this.lastModifiedDate = new Date();
-    this.fileContent = '';
+    this.fileContent = fileContent;
     this.childFiles = [];
 
     Object.defineProperty(this, 'fileBytes', {

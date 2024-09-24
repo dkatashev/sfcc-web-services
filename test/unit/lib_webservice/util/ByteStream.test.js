@@ -205,7 +205,7 @@ describe('scripts/util/ByteStream', () => {
 
     it('should return null if the sequence is at the end of the stream', () => {
       const sequence = new MockBytes('world');
-      const byteStream = new ByteStream(new MockBytes('world'));
+      const byteStream = new ByteStream(sequence);
 
       byteStream.move(5);
       expect(byteStream.readUntil(sequence)).to.be.null;

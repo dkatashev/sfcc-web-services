@@ -12,8 +12,6 @@ class CacheMgr {
   }
 }
 
-Object.defineProperty(CacheMgr, 'store', {
-  value: {}
-});
+CacheMgr.store = {};
 
 module.exports = CacheMgr;

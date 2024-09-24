@@ -7,6 +7,7 @@ const proxyquire = require('proxyquire').noCallThru();
 const mocks = require('../../../mocks');
 const MockXML = mocks['global/XML'];
 const MockFile = mocks['dw/io/File'];
+const MockList = mocks['dw/util/List'];
 const MockBytes = mocks['dw/util/Bytes'];
 const MockKeyRef = mocks['dw/crypto/KeyRef'];
 const MockEncoding = mocks['dw/crypto/Encoding'];
@@ -16,28 +17,22 @@ const MockLocalServiceRegistry = mocks['dw/svc/LocalServiceRegistry'];
 
 global.XML = MockXML;
 
-const ByteStream = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/ByteStream', {
-  'dw/util/Bytes': MockBytes,
-});
-const contentHeader = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/contentHeader', {});
-const headers = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/headers', {});
-const urlencoded = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/urlencoded', {
-  'dw/crypto/Encoding': MockEncoding,
-});
-const multipart = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/multipart', {
-  'dw/util/Bytes': MockBytes,
-  '*/cartridge/scripts/util/headers': headers,
-  '*/cartridge/scripts/util/ByteStream': ByteStream,
-});
-const BaseService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
-  'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
-});
 const RestService = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/RestService', {
   'dw/net/HTTPRequestPart': MockHTTPRequestPart,
-  '*/cartridge/scripts/webservice/BaseService': BaseService,
-  '*/cartridge/scripts/util/contentHeader': contentHeader,
-  '*/cartridge/scripts/util/urlencoded': urlencoded,
-  '*/cartridge/scripts/util/multipart': multipart,
+  '*/cartridge/scripts/webservice/BaseService': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/webservice/BaseService', {
+    'dw/svc/LocalServiceRegistry': MockLocalServiceRegistry,
+  }),
+  '*/cartridge/scripts/util/contentHeader': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/contentHeader', {}),
+  '*/cartridge/scripts/util/urlencoded': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/urlencoded', {
+    'dw/crypto/Encoding': MockEncoding,
+  }),
+  '*/cartridge/scripts/util/multipart': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/multipart', {
+    'dw/util/Bytes': MockBytes,
+    '*/cartridge/scripts/util/headers': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/headers', {}),
+    '*/cartridge/scripts/util/ByteStream': proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/ByteStream', {
+      'dw/util/Bytes': MockBytes,
+    }),
+  }),
 });
 
 describe('scripts/webservice/RestService', () => {
@@ -213,7 +208,7 @@ describe('scripts/webservice/RestService', () => {
       const result = RestService._createRequestBody(svc, 'mixed', data);
       const bodyString = '--boundary\r\ncontent-type: text/plain\r\n\r\nPart1\r\n--boundary\r\ncontent-type: text/html\r\n\r\nPart2\r\n--boundary--';
 
-      expect(svc.client.requestHeaders.get('Content-Type')).to.equal('multipart/mixed; boundary=' + data.boundary);
+      expect(svc.client.requestHeaders.get('Content-Type')).to.equal(`multipart/mixed; boundary=${data.boundary}`);
       expect(result).to.equal(bodyString);
     });
 
@@ -233,19 +228,53 @@ describe('scripts/webservice/RestService', () => {
       response = new MockHTTPClient();
     });
 
-    it('should parse JSON response', () => {
-      response.responseHeaders.put('Content-Type', 'application/json');
-      response.text = '{"key": "value"}';
+    const testCases = {
+      JSON: {
+        contentType: 'application/json',
+        responseText: '{"key": "value"}',
+      },
+      XML: {
+        contentType: 'application/xml',
+        responseText: '<root><key>value</key></root>',
+      },
+      FORM: {
+        contentType: 'application/x-www-form-urlencoded',
+        responseText: 'key=value',
+      },
+      FORM_DATA: {
+        contentType: 'multipart/form-data; boundary=boundary',
+        responseText: '--boundary\r\n\r\n\r\nvalue\r\n--boundary\r\nContent-Disposition: form-data; name="key"\r\n\r\nvalue\r\n--boundary--',
+      },
+      MIXED: {
+        contentType: 'multipart/mixed; boundary=boundary',
+        responseText: '--boundary\r\nContent-Type: application/json\r\n\r\n{"key": "value"}\r\n--boundary\r\n\r\n\r\nrawText\r\n--boundary--',
+      },
+      STREAM: {
+        contentType: 'application/octet-stream',
+        responseText: 'binarydata',
+      },
+      TEXT: {
+        contentType: 'text/plain',
+        responseText: 'plain text response',
+      },
+    };
 
+    const setResponse = ({ contentType, responseText }) => {
+      response.responseHeaders.put('Content-Type', new MockList([contentType]));
+      response.responseHeaders.put('Content-Length', new MockList([responseText.length]));
+      response.responseHeaders.put('Set-Cookie', new MockList(['cookie1', 'cookie2']));
+      response.text = responseText;
+    };
+
+    it('should parse JSON response', () => {
+      setResponse(testCases.JSON);
       const result = TestService.parseResponse(svc, response);
 
       expect(result).to.deep.equal({ key: 'value' });
     });
 
     it('should parse XML response', () => {
-      response.responseHeaders.put('Content-Type', 'application/xml');
-      response.text = '<root><key>value</key></root>';
-
+      setResponse(testCases.XML);
       const result = TestService.parseResponse(svc, response);
 
       expect(result).to.be.an.instanceof(XML);
@@ -253,17 +282,14 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should parse URL-encoded response', () => {
-      response.responseHeaders.put('Content-Type', 'application/x-www-form-urlencoded');
-      response.text = 'key=value';
-
+      setResponse(testCases.FORM);
       const result = TestService.parseResponse(svc, response);
+
       expect(result).to.deep.equal({ key: 'value' });
     });
 
     it('should parse multipart/form-data response', () => {
-      response.responseHeaders.put('Content-Type', 'multipart/form-data; boundary=boundary');
-      response.text = '--boundary\r\n\r\n\r\nvalue\r\n--boundary\r\nContent-Disposition: form-data; name="key"\r\n\r\nvalue\r\n--boundary--';
-
+      setResponse(testCases.FORM_DATA);
       const result = TestService.parseResponse(svc, response);
 
       expect(result).to.deep.equal([
@@ -279,9 +305,7 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should parse multipart/mixed response', () => {
-      response.responseHeaders.put('Content-Type', 'multipart/mixed; boundary=boundary');
-      response.text = '--boundary\r\nContent-Type: application/json\r\n\r\n{"key": "value"}\r\n--boundary\r\n\r\n\r\nrawText\r\n--boundary--';
-
+      setResponse(testCases.MIXED);
       const result = TestService.parseResponse(svc, response);
 
       expect(result).to.deep.equal([
@@ -297,29 +321,25 @@ describe('scripts/webservice/RestService', () => {
     });
 
     it('should handle application/octet-stream response', () => {
-      response.responseHeaders.put('Content-Type', 'application/octet-stream');
-      response.text = 'binarydata';
-
+      setResponse(testCases.STREAM);
       const result = TestService.parseResponse(svc, response);
 
       expect(result.toString()).to.equal(response.text);
     });
 
     it('should handle plain text response', () => {
-      response.responseHeaders.put('Content-Type', 'text/plain');
-      response.text = 'plain text response';
-
+      setResponse(testCases.TEXT);
       const result = TestService.parseResponse(svc, response);
 
-      expect(result).to.equal('plain text response');
+      expect(result).to.equal(response.text);
     });
 
     it('should return raw response if content-type is not recognized', () => {
-      response.text = 'raw response';
-
+      const responseText = 'raw response';
+      response.text = responseText;
       const result = TestService.parseResponse(svc, response);
 
-      expect(result).to.equal('raw response');
+      expect(result).to.equal(response.text);
     });
   });
 });

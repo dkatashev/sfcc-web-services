@@ -2,17 +2,21 @@
 
 class Cache {
   constructor(store = {}) {
-    Object.defineProperty(this, 'store', {
-      value: store
-    });
+    this.store = store;
   }
 
   get(key, callback) {
-    if (!(key in this.store)) {
-      this.store[key] = callback ? callback() : undefined;
+    let value = this.store[key];
+
+    if (value === undefined && typeof callback === 'function') {
+      value = callback();
+
+      if (value !== undefined) {
+        this.store[key] = value;
+      }
     }
 
-    return this.store[key];
+    return value;
   }
 
   invalidate(key) {
@@ -20,7 +24,11 @@ class Cache {
   }
 
   put(key, value) {
-    this.store[key] = value;
+    if (value === undefined) {
+      this.invalidate(key);
+    } else {
+      this.store[key] = value;
+    }
   }
 }
 

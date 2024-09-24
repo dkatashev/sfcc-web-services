@@ -30,6 +30,7 @@ module.exports = {
   'dw/util/Collection': require('./dw/util/Collection'),
   'dw/util/HashMap': require('./dw/util/HashMap'),
   'dw/util/Iterator': require('./dw/util/Iterator'),
+  'dw/util/List': require('./dw/util/List'),
   'dw/util/Map': require('./dw/util/Map'),
   'dw/util/MapEntry': require('./dw/util/MapEntry'),
   'dw/util/Set': require('./dw/util/Set'),

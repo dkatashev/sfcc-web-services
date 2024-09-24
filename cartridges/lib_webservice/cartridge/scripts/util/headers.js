@@ -33,8 +33,10 @@ module.exports = {
    * @returns {string} The raw headers string.
    */
   format: function (headers) {
-    return Object.keys(headers).map(function (name) {
+    var headerRows = Object.keys(headers).map(function (name) {
       return name + ': ' + headers[name];
-    }).join('\r\n');
+    });
+
+    return headerRows.join('\r\n');
   },
 };

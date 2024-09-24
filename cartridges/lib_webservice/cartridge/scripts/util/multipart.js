@@ -74,18 +74,18 @@ module.exports = {
   format: function (boundary, parts) {
     var crlf = '\r\n';
     var delimiter = '--' + boundary;
-    var body = parts.map(function (part) {
+    var bodyParts = [];
+
+    parts.forEach(function (part) {
       var headersString = headers.format(part.headers);
-      return delimiter + crlf + headersString + crlf + crlf + part.body;
-    }).join(crlf);
+      var bodyString = part.body.toString();
 
-    if (body) {
-      body += crlf + delimiter + '--';
-    } else {
-      body = delimiter + '--';
-    }
+      bodyParts.push(delimiter + crlf + headersString + crlf + crlf + bodyString + crlf);
+    });
 
-    return body;
+    bodyParts.push(delimiter + '--');
+
+    return bodyParts.join('');
   },
 };
 

@@ -13,17 +13,20 @@ module.exports = {
    * @returns {Object.<string, string>} The resulting object.
    */
   parse: function (urlEncoded) {
-    return urlEncoded.split('&').reduce(function (state, next) {
-      if (next) {
-        var pairs = next.split('=');
-        var key = Encoding.fromURI(pairs[0]);
-        var value = Encoding.fromURI(pairs[1] || '');
+    var result = {};
+    var pairs = urlEncoded.split('&');
 
-        state[key] = value;
-      }
+    pairs.forEach(function (pair) {
+      if (!pair) return;
 
-      return state;
-    }, {});
+      var keyValue = pair.split('=');
+      var key = Encoding.fromURI(keyValue[0]);
+      var value = Encoding.fromURI(keyValue[1] || '');
+
+      result[key] = value;
+    });
+
+    return result;
   },
 
   /**
@@ -33,10 +36,12 @@ module.exports = {
    * @returns {string} The URL-encoded string.
    */
   format: function (data) {
-    return Object.keys(data)
-      .map(function (key) {
-        return Encoding.toURI(key) + '=' + Encoding.toURI(data[key]);
-      })
-      .join('&');
+    var parts = [];
+
+    Object.keys(data).forEach(function (key) {
+      parts.push(Encoding.toURI(key) + '=' + Encoding.toURI(data[key]));
+    });
+
+    return parts.join('&');
   },
 };

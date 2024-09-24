@@ -68,22 +68,26 @@ class WSUtil {
   }
 
   static _stub() {
-    sinon.stub(WSUtil, 'addSOAPHeader');
-    sinon.stub(WSUtil, 'clearSOAPHeaders');
-    sinon.stub(WSUtil, 'createHolder');
-    sinon.stub(WSUtil, 'getConnectionTimeout');
-    sinon.stub(WSUtil, 'getHTTPRequestHeader');
-    sinon.stub(WSUtil, 'getProperty');
-    sinon.stub(WSUtil, 'getRequestTimeout');
-    sinon.stub(WSUtil, 'getResponseProperty');
-    sinon.stub(WSUtil, 'isAllowChunking');
-    sinon.stub(WSUtil, 'setAllowChunking');
-    sinon.stub(WSUtil, 'setConnectionTimeout');
-    sinon.stub(WSUtil, 'setHTTPRequestHeader');
-    sinon.stub(WSUtil, 'setProperty');
-    sinon.stub(WSUtil, 'setRequestTimeout');
-    sinon.stub(WSUtil, 'setUserNamePassword');
-    sinon.stub(WSUtil, 'setWSSecurityConfig');
+    const methods = [
+      'addSOAPHeader',
+      'clearSOAPHeaders',
+      'createHolder',
+      'getConnectionTimeout',
+      'getHTTPRequestHeader',
+      'getProperty',
+      'getRequestTimeout',
+      'getResponseProperty',
+      'isAllowChunking',
+      'setAllowChunking',
+      'setConnectionTimeout',
+      'setHTTPRequestHeader',
+      'setProperty',
+      'setRequestTimeout',
+      'setUserNamePassword',
+      'setWSSecurityConfig'
+    ];
+
+    methods.forEach(method => sinon.stub(WSUtil, method));
   }
 }
 

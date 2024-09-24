@@ -242,10 +242,32 @@ var RestService = BaseService.extend({
    * @returns {string|Object} The parsed response content.
    */
   parseResponse: function (svc, response) {
-    var contentTypeHeader = response.getResponseHeader('Content-Type') || '';
+    var responseHeaders = this._normalizeResponseHeaders(response.responseHeaders);
+    var contentTypeHeader = responseHeaders['content-type'] || 'text/plain';
     var contentTypeObject = contentHeader.parse(contentTypeHeader);
 
     return this._parseResponseBody(contentTypeObject, response);
+  },
+
+  /**
+   * Normalizes the headers from a dw.util.Map to a plain JavaScript object with lowercase keys.
+   *
+   * @param {dw.util.Map} headersMap - The headers map.
+   * @returns {Object.<string,string|string[]>} The normalized headers.
+   */
+  _normalizeResponseHeaders: function (headersMap) {
+    var headers = {};
+    var entries = headersMap.entrySet().iterator();
+
+    while (entries.hasNext()) {
+      var entry = entries.next();
+      var key = entry.getKey().toLowerCase();
+      var value = entry.getValue();
+
+      headers[key] = value.length === 1 ? value.get(0) : value;
+    }
+
+    return headers;
   },
 
   /**

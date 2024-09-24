@@ -14,7 +14,7 @@ class Bytes {
   }
 
   bytesAt(index, length) {
-    return new Bytes(this.bytes.slice(index, index + length).toString());
+    return new Bytes(this.bytes.subarray(index, index + length).toString());
   }
 
   getLength() {

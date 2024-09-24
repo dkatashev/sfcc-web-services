@@ -4,6 +4,6 @@ const Collection = require('./Collection');
 
 class DwSet extends Collection {}
 
-Set.EMPTY_SET = new DwSet();
+DwSet.EMPTY_SET = new DwSet();
 
 module.exports = DwSet;

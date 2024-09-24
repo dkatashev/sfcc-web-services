@@ -2,37 +2,33 @@
 
 const sinon = require('sinon');
 const Bytes = require('../util/Bytes');
-const HashMap = require('../util/HashMap');
+const DwMap = require('../util/Map');
 
 class HTTPClient {
   constructor() {
     this.allowRedirect = true;
 
-    Object.defineProperty(this, 'bytes', {
-      enumerable: true,
-      get() {
-        return new Bytes(this.text);
+    Object.defineProperties(this, {
+      bytes: {
+        enumerable: true,
+        get() {
+          return new Bytes(this.text);
+        }
+      },
+      errorBytes: {
+        enumerable: true,
+        get() {
+          return new Bytes(this.errorText);
+        }
       }
     });
 
-    Object.defineProperty(this, 'ttl', {
-      get() {
-        return new Bytes(this.text);
-      }
-    });
-
-    Object.defineProperty(this, 'errorBytes', {
-      enumerable: true,
-      get() {
-        return new Bytes(this.errorText);
-      }
-    });
-
+    this.ttl = 0;
     this.errorText = '';
     this.hostNameVerification = true;
     this.identity = null;
-    this.requestHeaders = new HashMap();
-    this.responseHeaders = new HashMap();
+    this.requestHeaders = new DwMap();
+    this.responseHeaders = new DwMap();
     this.statusCode = 200;
     this.statusMessage = 'OK';
     this.text = '';
@@ -80,10 +76,10 @@ class HTTPClient {
 
   getResponseHeaders(name) {
     if (name) {
-      return [];
+      return this.responseHeaders.get(name);
     }
 
-    return [];
+    return this.responseHeaders;
   }
 
   getStatusCode() {

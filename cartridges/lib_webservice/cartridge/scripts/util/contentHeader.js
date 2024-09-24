@@ -7,6 +7,7 @@ module.exports = {
   MIME_TYPE_RE: /^[!#$%&'*+.^\w|~-]+\/[!#$%&'*+.^\w|~-]+$/,
   DISPOSITION_TYPE_RE: /^[!#$%&'*+.^\w|~-]+$/,
   PARAMETER_RE: / *([!#$%&'*+.^\w`|~-]+)=("(?:[\x0b\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x0b\x20-\xff])*"|[!#$%&'*+.^\w`|~-]+) */,
+  QUOTED_VALUE_RE: /^[!#$%&'*+.^\w`|~-]+$/,
 
   /**
    * Parses a header string into an object with type and parameters.
@@ -16,12 +17,9 @@ module.exports = {
    * @returns {ContentHeader} The parsed content header information.
    */
   parse: function (header, headerType) {
-    var result = {
-      type: '',
-      params: {}
-    };
-    var parts = header.split(';').map(function (part) { return part.trim(); });
-    var type = parts.shift();
+    var result = { type: '', params: {} };
+    var parts = header.split(';');
+    var type = parts.shift().trim();
     var typeRegex = headerType === 'disposition' ? this.DISPOSITION_TYPE_RE : this.MIME_TYPE_RE;
     var self = this;
 
@@ -56,16 +54,18 @@ module.exports = {
       parts.push(contentHeader.type);
     }
 
-    if (contentHeader.params !== null && typeof contentHeader.params === 'object') {
-      var quoteValue = function (value) {
-        if (/[\s\\"]/.test(value)) {
-          return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
-        }
-        return value;
-      };
+    var params = contentHeader.params;
+    var quotedRegex = this.QUOTED_VALUE_RE;
 
+    if (params) {
       Object.keys(contentHeader.params).forEach(function (param) {
-        parts.push(param + '=' + quoteValue(contentHeader.params[param]));
+        var value = contentHeader.params[param];
+
+        if (!quotedRegex.test(value)) {
+          value = '"' + value.replace(/"/g, '\\"') + '"';
+        }
+
+        parts.push(param + '=' + value);
       });
     }
 

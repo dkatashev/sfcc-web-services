@@ -33,18 +33,31 @@ ByteStream.charCode = {
  * @returns {boolean} - True if the byte arrays are equal, false otherwise.
  */
 ByteStream.equal = function (a, b) {
-  if (a.length !== b.length) {
+  var length = a.length;
+
+  if (length !== b.length) {
     return false;
   }
 
   // Compare byte-by-byte
-  for (var i = 0; i < a.length; i++) {
+  for (var i = 0; i < length; i++) {
     if (a.byteAt(i) !== b.byteAt(i)) {
       return false;
     }
   }
 
   return true;
+};
+
+/**
+ * Adjusts the index based on the length of an array or string.
+ * If the index is negative, it is adjusted by adding the length of the array or string to it.
+ * @param {number} i - The index to adjust.
+ * @param {number} l - The length of the array or string.
+ * @returns {number} - The adjusted index.
+ */
+ByteStream.adjustIndex = function (i, l) {
+  return i < 0 ? (l + i) : i;
 };
 
 /**
@@ -94,13 +107,15 @@ ByteStream.prototype.peek = function (offset) {
  * @returns {dw.util.Bytes} - The sliced bytes.
  */
 ByteStream.prototype.slice = function (start, end) {
+  var length = this.length;
+
   // If start or end is negative, adjust it based on the length
-  var from = start < 0 ? this.length + start : start;
-  var to = end < 0 ? this.length + end : end;
+  var from = ByteStream.adjustIndex(start, length);
+  var to = ByteStream.adjustIndex(end, length);
 
   // Ensure start and end are within the bounds
   from = Math.max(0, from);
-  to = Math.min(this.length, to);
+  to = Math.min(length, to);
 
   // If the end is before the start after adjustment, return empty Bytes
   if (to < from) {
@@ -108,10 +123,10 @@ ByteStream.prototype.slice = function (start, end) {
   }
 
   // Calculate length
-  var length = to - from;
+  var sliceLength = to - from;
 
   // Create the slice from the adjusted indices
-  return this.source.bytesAt(from, length);
+  return this.source.bytesAt(from, sliceLength);
 };
 
 /**
@@ -129,10 +144,10 @@ ByteStream.prototype.readN = function (n) {
     return null;
   }
 
-  var length = Math.min(n, this.length - this.position);
-  var bytes = this.source.bytesAt(this.position, length);
+  var bytesToRead = Math.min(n, this.length - this.position);
+  var bytes = this.source.bytesAt(this.position, bytesToRead);
 
-  this.move(length);
+  this.move(bytesToRead);
 
   return bytes;
 };
@@ -212,11 +227,14 @@ ByteStream.prototype.readUntil = function (sequence) {
 
   var start = this.position;
   var sequenceLength = sequence.length;
+  var streamLength = this.length;
+  var endPosition = streamLength - sequenceLength;
+  var chunk;
   var result;
 
   // Read bytes until the sequence is found or end of the stream is reached
-  while (this.position + sequenceLength <= this.length) {
-    var chunk = this.source.bytesAt(this.position, sequenceLength);
+  while (this.position <= endPosition) {
+    chunk = this.source.bytesAt(this.position, sequenceLength);
 
     if (ByteStream.equal(sequence, chunk)) {
       result = this.slice(start, this.position);
@@ -229,7 +247,7 @@ ByteStream.prototype.readUntil = function (sequence) {
   }
 
   // Handle case when sequence is not found but the stream ends
-  this.move(this.length - this.position);
+  this.move(streamLength - this.position);
   return null;
 };
 
