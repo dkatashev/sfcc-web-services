@@ -1,5 +1,3 @@
-'use strict';
-
 const ExtensibleObject = require('../object/ExtensibleObject');
 
 class ServiceCredential extends ExtensibleObject {

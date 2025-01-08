@@ -1,5 +1,3 @@
-'use strict';
-
 const Service = require('./Service');
 
 class SOAPService extends Service {

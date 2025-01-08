@@ -1,5 +1,3 @@
-'use strict';
-
 const { expect } = require('chai');
 const proxyquire = require('proxyquire').noCallThru();
 
@@ -100,7 +98,7 @@ describe('scripts/util/contentHeader', () => {
         type: 'multipart/form-data',
         params: {
           boundary: 'boundary',
-          charset: 'utf-8'
+          charset: 'utf-8',
         },
       });
 

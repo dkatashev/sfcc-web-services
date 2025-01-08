@@ -1,5 +1,3 @@
-'use strict';
-
 const Cache = require('./Cache');
 
 class CacheMgr {

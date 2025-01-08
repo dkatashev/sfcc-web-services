@@ -1,10 +1,8 @@
-'use strict';
-
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockService = mocks['dw/svc/Service'];
 const MockEncoding = mocks['dw/crypto/Encoding'];
 const MockWebDAVClient = mocks['dw/net/WebDAVClient'];
@@ -98,7 +96,7 @@ describe('scripts/webservice/WebDavService', () => {
     it('should execute a single WebDAV operation with arguments', () => {
       const params = {
         operation: 'get',
-        args: ['remotePath', 'localPath']
+        args: ['remotePath', 'localPath'],
       };
       const svc = TestService._createService('default', params);
 
@@ -114,15 +112,13 @@ describe('scripts/webservice/WebDavService', () => {
 
     it('should execute multiple WebDAV operations using callback', () => {
       const params = {
-        onExecute: (svc) => {
-          const client = svc.client;
-
+        onExecute: ({ client }) => {
           client.cd = sinon.stub().returns(true);
           client.del = sinon.stub().returns(true);
           client.close = sinon.stub();
 
           return client.cd('path/to') && client.del('file.xml');
-        }
+        },
       };
       const svc = TestService._createService('default', params);
 

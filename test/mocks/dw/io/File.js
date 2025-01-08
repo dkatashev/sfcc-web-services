@@ -1,6 +1,5 @@
-'use strict';
-
 const { posix: path } = require('path');
+const crypto = require('crypto');
 const Bytes = require('../util/Bytes');
 
 class File {
@@ -26,7 +25,7 @@ class File {
       enumerable: true,
       get() {
         return new Bytes(this.fileContent);
-      }
+      },
     });
   }
 
@@ -141,8 +140,7 @@ class File {
   }
 
   md5() {
-    // Simple MD5 hash simulation
-    return require('crypto').createHash('md5').update(this.fileContent).digest('hex');
+    return crypto.createHash('md5').update(this.fileContent).digest('hex');
   }
 
   static getRootDirectory(rootDir, ...args) {

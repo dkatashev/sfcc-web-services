@@ -1,9 +1,7 @@
-'use strict';
-
 const { expect } = require('chai');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockEncoding = mocks['dw/crypto/Encoding'];
 const urlencoded = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/urlencoded', {
   'dw/crypto/Encoding': MockEncoding,

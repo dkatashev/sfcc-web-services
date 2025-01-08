@@ -1,5 +1,3 @@
-'use strict';
-
 const Service = require('./Service');
 const HTTPClient = require('../net/HTTPClient');
 

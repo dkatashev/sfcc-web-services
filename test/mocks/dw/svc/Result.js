@@ -1,5 +1,3 @@
-'use strict';
-
 class Result {
   constructor(status = Result.OK, object = null) {
     this.status = status;

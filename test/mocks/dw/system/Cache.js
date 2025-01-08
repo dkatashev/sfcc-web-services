@@ -1,5 +1,3 @@
-'use strict';
-
 class Cache {
   constructor(store = {}) {
     this.store = store;

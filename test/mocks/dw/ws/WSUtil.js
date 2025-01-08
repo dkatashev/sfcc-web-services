@@ -1,5 +1,3 @@
-'use strict';
-
 const sinon = require('sinon');
 
 class WSUtil {
@@ -84,10 +82,10 @@ class WSUtil {
       'setProperty',
       'setRequestTimeout',
       'setUserNamePassword',
-      'setWSSecurityConfig'
+      'setWSSecurityConfig',
     ];
 
-    methods.forEach(method => sinon.stub(WSUtil, method));
+    methods.forEach((method) => sinon.stub(WSUtil, method));
   }
 }
 

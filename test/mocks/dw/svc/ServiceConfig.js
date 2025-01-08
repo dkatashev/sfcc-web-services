@@ -1,5 +1,3 @@
-'use strict';
-
 const ExtensibleObject = require('../object/ExtensibleObject');
 const ServiceCredential = require('./ServiceCredential');
 const ServiceProfile = require('./ServiceProfile');

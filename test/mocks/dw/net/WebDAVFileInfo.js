@@ -1,5 +1,3 @@
-'use strict';
-
 class WebDAVFileInfo {
   constructor(name = '', path = '', directory = false) {
     this.contentType = '';

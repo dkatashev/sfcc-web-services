@@ -1,9 +1,7 @@
-'use strict';
-
 const { expect } = require('chai');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockFTPClient = mocks['dw/net/FTPClient'];
 const MockSFTPClient = mocks['dw/net/SFTPClient'];
 const MockFTPService = mocks['dw/svc/FTPService'];
@@ -65,7 +63,7 @@ describe('scripts/webservice/SFTPService', () => {
     it('should execute a single operation with arguments', () => {
       const params = {
         operation: 'get',
-        args: ['remotePath', 'localPath']
+        args: ['remotePath', 'localPath'],
       };
       const svc = TestService._createService('sftp', params);
 
@@ -77,15 +75,13 @@ describe('scripts/webservice/SFTPService', () => {
 
     it('should execute multiple operations using callback', () => {
       const params = {
-        onExecute: (svc) => {
-          const client = svc.client;
-
+        onExecute: ({ client }) => {
           if (client.cd('path/to')) {
             return client.del('file.xml');
           }
 
           return false;
-        }
+        },
       };
       const svc = TestService._createService('sftp', params);
 

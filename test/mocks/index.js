@@ -1,4 +1,4 @@
-'use strict';
+/* eslint-disable global-require */
 
 module.exports = {
   'global/XML': require('./global/XML'),

@@ -1,5 +1,3 @@
-'use strict';
-
 const Result = require('./Result');
 const ServiceConfig = require('./ServiceConfig');
 
@@ -63,8 +61,8 @@ class Service {
         filterLogMessage(
           JSON.stringify({
             request: this.requestData,
-            response: this.response
-          })
+            response: this.response,
+          }),
         );
       }
 

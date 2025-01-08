@@ -1,9 +1,7 @@
-'use strict';
-
 const { expect } = require('chai');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockResult = mocks['dw/svc/Result'];
 const MockService = mocks['dw/svc/Service'];
 const MockServiceCredential = mocks['dw/svc/ServiceCredential'];
@@ -22,7 +20,7 @@ describe('scripts/webservice/BaseService', () => {
       SERVICE_CONFIGURATIONS: {
         default: 'abstract.default',
         alias: 'abstract.alias',
-      }
+      },
     });
     params = { test: 'param' };
   });
@@ -57,7 +55,7 @@ describe('scripts/webservice/BaseService', () => {
       const error = new Error('_createService error');
 
       TestService = TestService.extend({
-        createRequest: () => { throw error; }
+        createRequest: () => { throw error; },
       });
 
       const result = TestService.fetch();
@@ -70,7 +68,7 @@ describe('scripts/webservice/BaseService', () => {
       const error = new Error('_createService error');
 
       TestService = TestService.extend({
-        _createService: () => { throw error; }
+        _createService: () => { throw error; },
       });
 
       const result = TestService.fetch();

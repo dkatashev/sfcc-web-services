@@ -1,9 +1,7 @@
-'use strict';
-
 const { expect } = require('chai');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockBytes = mocks['dw/util/Bytes'];
 const ByteStream = proxyquire('../../../../cartridges/lib_webservice/cartridge/scripts/util/ByteStream', {
   'dw/util/Bytes': MockBytes,

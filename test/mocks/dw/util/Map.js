@@ -1,5 +1,3 @@
-'use strict';
-
 const DwSet = require('./Set');
 const MapEntry = require('./MapEntry');
 
@@ -11,12 +9,12 @@ class DwMap {
       empty: {
         get() {
           return Boolean(this.map.size);
-        }
+        },
       },
       length: {
         get() {
           return this.map.size;
-        }
+        },
       },
     });
   }
@@ -31,7 +29,7 @@ class DwMap {
 
   containsValue(value) {
     const values = Array.from(this.map.values());
-    return values.some(v => v === value);
+    return values.some((v) => v === value);
   }
 
   entrySet() {

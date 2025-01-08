@@ -1,5 +1,3 @@
-'use strict';
-
 class SFTPFileInfo {
   /**
    * @param {string} name

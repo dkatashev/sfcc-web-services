@@ -1,5 +1,3 @@
-'use strict';
-
 class XML {
   constructor(value) {
     this.xml = String(value);

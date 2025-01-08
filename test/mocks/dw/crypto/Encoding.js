@@ -1,5 +1,3 @@
-'use strict';
-
 const Bytes = require('../util/Bytes');
 
 class Encoding {
@@ -7,6 +5,7 @@ class Encoding {
     if (string === null) {
       throw new Error('Null value is not allowed');
     }
+
     return new Bytes(Buffer.from(string, 'base64').toString());
   }
 
@@ -14,6 +13,7 @@ class Encoding {
     if (bytes === null) {
       throw new Error('Null value is not allowed');
     }
+
     return Buffer.from(bytes.bytes).toString('base64');
   }
 
@@ -21,9 +21,11 @@ class Encoding {
     if (string === null) {
       throw new Error('Null value is not allowed');
     }
+
     if (string.length % 2 !== 0) {
       throw new Error('Invalid hexadecimal string');
     }
+
     return new Bytes(Buffer.from(string, 'hex').toString());
   }
 
@@ -31,6 +33,7 @@ class Encoding {
     if (bytes === null) {
       throw new Error('Null value is not allowed');
     }
+
     return Buffer.from(bytes.bytes).toString('hex');
   }
 
@@ -40,6 +43,7 @@ class Encoding {
     }
 
     const str = Buffer.from(string, encoding).toString();
+
     return decodeURIComponent(str.replace(/\+/g, '%20'));
   }
 
@@ -49,9 +53,10 @@ class Encoding {
     }
 
     const str = Buffer.from(string, encoding).toString();
-    return encodeURIComponent(str).replace(/%20/g, '+').replace(/[!'()]/g, function (c) {
-      return '%' + c.charCodeAt(0).toString(16);
-    });
+
+    return encodeURIComponent(str)
+      .replace(/%20/g, '+')
+      .replace(/[!'()]/g, (c) => `%${c.charCodeAt(0).toString(16)}`);
   }
 }
 

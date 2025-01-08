@@ -1,5 +1,3 @@
-'use strict';
-
 const File = require('../io/File');
 const Bytes = require('../util/Bytes');
 

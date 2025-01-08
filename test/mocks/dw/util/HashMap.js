@@ -1,5 +1,3 @@
-'use strict';
-
 const DwMap = require('./Map');
 
 class HashMap extends DwMap {

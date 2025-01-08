@@ -1,5 +1,3 @@
-'use strict';
-
 const Collection = require('./Collection');
 
 class DwSet extends Collection {}

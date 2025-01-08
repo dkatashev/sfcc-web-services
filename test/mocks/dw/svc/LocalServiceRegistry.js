@@ -1,5 +1,3 @@
-'use strict';
-
 const Service = require('./Service');
 const FTPService = require('./FTPService');
 const HTTPService = require('./HTTPService');

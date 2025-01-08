@@ -1,5 +1,3 @@
-'use strict';
-
 const Service = require('./Service');
 const FTPClient = require('../net/FTPClient');
 const SFTPClient = require('../net/SFTPClient');

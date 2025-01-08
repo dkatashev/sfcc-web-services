@@ -1,5 +1,3 @@
-'use strict';
-
 const Iterator = require('./Iterator');
 
 class Collection {
@@ -10,12 +8,12 @@ class Collection {
       empty: {
         get() {
           return Boolean(this.array.length);
-        }
+        },
       },
       length: {
         get() {
           return this.array.length;
-        }
+        },
       },
     });
   }
@@ -24,7 +22,7 @@ class Collection {
     let items = values;
 
     if (values.length === 1 && Array.isArray(values[0])) {
-      items = values[0];
+      [items] = values;
     }
 
     this.array.push(...items);
@@ -47,11 +45,11 @@ class Collection {
   }
 
   contains(object) {
-    return this.array.some(item => item === object);
+    return this.array.some((item) => item === object);
   }
 
   containsAll(collection) {
-    return this.array.every(item => collection.array.includes(item));
+    return this.array.every((item) => collection.array.includes(item));
   }
 
   getLength() {

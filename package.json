@@ -5,7 +5,9 @@
   "license": "MIT",
   "description": "Salesforce Commerce Cloud - Web Service Library",
   "scripts": {
-    "lint": "eslint cartridges/**",
+    "lint": "npm run lint:cartridge && npm run lint:test",
+    "lint:cartridge": "eslint cartridges/** --fix",
+    "lint:test": "eslint test/** --fix",
     "test": "nyc --reporter=text --reporter=html mocha test/unit/**/*.test.js"
   },
   "devDependencies": {

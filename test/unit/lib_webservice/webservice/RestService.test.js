@@ -1,10 +1,8 @@
-'use strict';
-
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockXML = mocks['global/XML'];
 const MockFile = mocks['dw/io/File'];
 const MockList = mocks['dw/util/List'];
@@ -45,7 +43,7 @@ describe('scripts/webservice/RestService', () => {
       SERVICE_CONFIGURATIONS: {
         default: 'http.default',
         alias: 'http.alias',
-      }
+      },
     });
     params = {
       method: 'POST',

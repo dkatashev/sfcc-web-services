@@ -1,5 +1,3 @@
-'use strict';
-
 const sinon = require('sinon');
 const Bytes = require('../util/Bytes');
 const DwMap = require('../util/Map');
@@ -13,14 +11,14 @@ class HTTPClient {
         enumerable: true,
         get() {
           return new Bytes(this.text);
-        }
+        },
       },
       errorBytes: {
         enumerable: true,
         get() {
           return new Bytes(this.errorText);
-        }
-      }
+        },
+      },
     });
 
     this.ttl = 0;

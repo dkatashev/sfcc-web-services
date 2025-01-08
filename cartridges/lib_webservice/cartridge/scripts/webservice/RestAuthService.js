@@ -17,61 +17,88 @@ var RestAuthService = RestService.extend({
   },
 
   /**
-   * ID of the custom cache used to store access tokens.
+   * ID of the custom cache used to store auth credentials.
    * @type {string}
    */
-  CACHE_ID: '',
+  CACHE_ID: 'authCredentials',
 
   /**
-   * KEY of the custom cache used to store access tokens.
+   * KEY of the custom cache used to store auth credentials.
    * @type {string}
    */
   CACHE_KEY: '',
+
+  /**
+   * Implementation of getAuthentication callback
+   *
+   * @returns {import('./RestService').Authentication}
+   */
+  getAuthentication: function () {
+    var CacheMgr = require('dw/system/CacheMgr');
+
+    // Get the cache and stored data
+    var cache = CacheMgr.getCache(this.CACHE_ID);
+    var stored = cache.get(this.CACHE_KEY) || {};
+
+    // Check if the token is not expired
+    if (stored.expiration && stored.expiration >= Date.now()) {
+      return stored.auth;
+    }
+
+    // Token is expired or not present, invalidate the cache
+    cache.invalidate(this.CACHE_KEY);
+
+    // Perform authorization request
+    var result = this.sendAuthRequest();
+
+    // Check if the authorization was successful
+    if (!result.ok) {
+      var error = new Error('Authorization failed');
+      error.result = result;
+      throw error;
+    }
+
+    // Parse the authorization result
+    var data = this.parseAuthResult(result);
+
+    // Update the data with new token and expiration
+    data.expiration += Date.now();
+
+    // Save the new data to cache
+    cache.put(this.CACHE_KEY, data);
+
+    return data.auth;
+  },
 
   /**
    * Performs authorization using the 'auth' service action.
    *
    * @returns {dw.svc.Result} The result of the authorization request.
    */
-  authorize: function () {
-    return this.fetch('auth', {
-      method: 'POST',
-      dataType: 'form',
-      data: {
-        grant_type: 'client_credentials',
-      },
-    });
+  sendAuthRequest: function () {
+    throw new Error('sendAuthRequest method must be implemented by subclass');
   },
 
   /**
-   * Implementation of getAuthentication callback
+   * Parses the authorization result.
    *
-   * @param {import('./RestService').RestParams} args
-   * @param {dw.svc.HTTPService} svc
-   * @param {dw.svc.ServiceCredential} credential
-   * @returns {import('./RestService').Authentication}
+   * @param {dw.svc.Result} result The result of the authorization request.
+   * @returns {AuthorizationCache} The parsed authorization result.
    */
   // eslint-disable-next-line no-unused-vars
-  getAuthentication: function (args, svc, credential) {
-    var CacheMgr = require('dw/system/CacheMgr');
-    var cache = CacheMgr.getCache(this.CACHE_ID);
-    var self = this;
-
-    var authentication = cache.get(this.CACHE_KEY, function () {
-      var result = self.authorize();
-
-      if (!result.ok) {
-        throw result.errorMessage;
-      }
-
-      return {
-        type: result.object.token_type,
-        credentials: result.object.access_token,
-      };
-    });
-
-    return authentication;
+  parseAuthResult: function (result) {
+    throw new Error('parseAuthResult method must be implemented by subclass');
   },
 });
+
+/**
+ * @typedef {import('./RestService').Authentication} Authentication
+ */
+
+/**
+ * @typedef {Object} AuthorizationCache
+ * @property {number} expiration - The expiration time of the token.
+ * @property {Authentication} auth - The authorization data.
+ */
 
 module.exports = RestAuthService;

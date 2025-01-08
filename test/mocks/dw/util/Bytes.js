@@ -1,5 +1,3 @@
-'use strict';
-
 class Bytes {
   constructor(string, encoding) {
     this.bytes = Buffer.from(string, encoding || 'UTF-8');

@@ -1,5 +1,3 @@
-'use strict';
-
 class Iterator {
   constructor(array) {
     this.array = array;
@@ -7,6 +5,7 @@ class Iterator {
   }
 
   asList(start = 0, size = this.array.length) {
+    // eslint-disable-next-line global-require
     const List = require('./List');
     return new List(this.array.slice(start, size));
   }

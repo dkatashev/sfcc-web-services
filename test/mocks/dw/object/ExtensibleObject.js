@@ -1,5 +1,3 @@
-'use strict';
-
 const PersistentObject = require('./PersistentObject');
 
 class ExtensibleObject extends PersistentObject {

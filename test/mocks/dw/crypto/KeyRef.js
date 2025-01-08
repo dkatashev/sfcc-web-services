@@ -1,5 +1,3 @@
-'use strict';
-
 class KeyRef {
   constructor(alias) {
     this.key = KeyRef.store[alias];

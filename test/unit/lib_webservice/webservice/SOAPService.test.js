@@ -1,10 +1,8 @@
-'use strict';
-
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
-
 const mocks = require('../../../mocks');
+
 const MockPort = mocks['dw/ws/Port'];
 const MockWSUtil = mocks['dw/ws/WSUtil'];
 const MockWebReference2 = mocks['dw/ws/WebReference2'];
@@ -17,7 +15,7 @@ global.webreferences2 = {
     defaultService: new MockPort(['myOperation']),
     myService: {
       myPort: new MockPort(['myOperation']),
-    }
+    },
   }, ['TestRequest']),
 };
 
@@ -88,7 +86,7 @@ describe('scripts/webservice/SOAPService', () => {
           session: true,
           username: 'username',
           password: 'password',
-          unknown: 'unknown'
+          unknown: 'unknown',
         },
       };
 
@@ -146,8 +144,8 @@ describe('scripts/webservice/SOAPService', () => {
         MockWSUtil.setWSSecurityConfig.calledWith(
           svc.serviceClient,
           params.securityConfig.requestConfigMap,
-          params.securityConfig.responseConfigMap
-        )
+          params.securityConfig.responseConfigMap,
+        ),
       ).to.be.true;
     });
 
